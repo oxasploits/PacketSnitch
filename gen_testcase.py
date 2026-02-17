@@ -15,6 +15,8 @@ import numpy as np
 from scipy.stats import entropy
 import socket
 import chardet
+import gzip
+import zlib
 
 try:
     import scapy.all as scapy
@@ -40,20 +42,35 @@ def write_info(output_dir, pdir, index, dt_json, pkt_json):
         "Extra Info": json.loads(dt_json),
     }
     out.write(json.dumps(merge_json).encode())
+    return merge_json
 
 
 def get_datatypes(data, dport):
     mime_type = magic.from_buffer(data, mime=True)
     descs = []
+    dedata = ""
     for ln in data.splitlines():
         descs.append(magic.from_buffer(ln))
+        if magic.from_buffer(ln) == "gzip compressed data":
+            dedata = zlib.decompressobj(wbits=zlib.MAX_WBITS | 16).decompress(ln)
+            get_datatypes(dedata, dport)
+            dt = {
+                "MIME Type": mime_type,
+                "data": descs,
+                "Decompressed data": dedata.hex(),
+            }
+            return dt
     udescs = list(set(descs))
     if "empty" in udescs:
         udescs.remove("empty")
     if "data" in udescs:
         udescs.remove("data")
     trait_struct = get_traits(data, dport)
-    dt = {"mime-type": mime_type, "data": udescs, "data-traits": trait_struct}
+    dt = {
+        "MIME Type": mime_type,
+        "data": udescs,
+        "Traits": trait_struct,
+    }
     return dt
 
 
@@ -75,14 +92,14 @@ def get_traits(data, dport):
     uniq_chars = set(data)
     encoding = chardet.detect(data)
     return {
-        "shannon entropy": entop,
-        "length": data_len,
-        "protocol": protostr,
-        "characters": {
-            "charset": charset,
-            "characters used": chars_used,
-            "unique characters": bytearray(list(uniq_chars)).hex(),
-            "encoding": encoding,
+        "Shannon Entropy": entop,
+        "Length": data_len,
+        "Protocol": protostr,
+        "Characters": {
+            "Charset": charset,
+            "Characters used": chars_used,
+            "Unique characters": bytearray(list(uniq_chars)).hex(),
+            "Encoding": encoding,
         },
     }
 
@@ -104,19 +121,22 @@ def parse_pcap(pcap_path, srcp, dstp):
                     write_testcase(raw_d, args.output, dport_dir, s)
                     dt_struct = get_datatypes(raw_d, dport)
                     pkt_struct = {
+                        "Packet Processed": int(s),
                         "IP": {
-                            "source": str(p["IP"].src),
-                            "destination": str(p["IP"].dst),
-                            "ip checksum": int(p["IP"].chksum),
+                            "Source IP": str(p["IP"].src),
+                            "Destination IP": str(p["IP"].dst),
+                            "IP Checksum": int(p["IP"].chksum),
                         },
                         "TCP": {
-                            "source port": int(sport),
-                            "destination port": int(dport),
-                            "tcp checksum": int(p["TCP"].chksum),
-                            "urgent flag": bool(p["TCP"].urgptr),
-                            "tcp flags": str(p["TCP"].flags),
-                            "options": list(p["TCP"].options),
+                            "Source port": int(sport),
+                            "Destination port": int(dport),
+                            "TCP checksum": int(p["TCP"].chksum),
+                            "Urgent flag": bool(p["TCP"].urgptr),
+                            "TCP flags": str(p["TCP"].flags),
+                            "Options": list(p["TCP"].options),
                         },
+                        "Payload": raw_d.hex(),
+                        "Packet": bytes(p).hex(),
                     }
                     write_info(
                         args.output,
@@ -126,7 +146,7 @@ def parse_pcap(pcap_path, srcp, dstp):
                         json.dumps(pkt_struct).encode(),
                     )
                     s = s + 1
-    print("Generated " + str(s) + " testcases.")
+    print("Generated " + str(s) + " testcases.", file=sys.stderr)
 
 
 parser = argparse.ArgumentParser(
@@ -153,10 +173,10 @@ parser.add_argument(
 )
 args = parser.parse_args()
 if not os.path.exists(args.pcap_file):
-    print("The .pcap file does not exist.")
+    print("The .pcap file does not exist.", file=sys.stderr)
     sys.exit(1)
 if not os.path.exists(args.output):
     os.mkdir(args.output)
-parse_pcap(args.pcap_file, args.source_port, args.dest_port)
-print("Done.")
+print(parse_pcap(args.pcap_file, args.source_port, args.dest_port))
+print("Done.", file=sys.stderr)
 sys.exit(0)
