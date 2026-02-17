@@ -1,7 +1,0 @@
-GET /4b55e63a-124e-45e5-9963-646d481f1d1b/dd.xml HTTP/1.1
-Connection: keep-alive
-Accept-Encoding: gzip
-Keep-Alive: 0
-Host: 10.0.1.16:8009
-User-Agent: Spotify/127400477 Linux/0 (PC desktop)
-

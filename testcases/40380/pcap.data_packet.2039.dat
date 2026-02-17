@@ -1,7 +1,0 @@
-HTTP/1.1 204 No Content
-server: nginx/1.18.0 (Ubuntu)
-date: Tue, 17 Feb 2026 22:53:53 GMT
-x-cache-status: from content-cache/2
-x-networkmanager-status: online
-connection: close
-

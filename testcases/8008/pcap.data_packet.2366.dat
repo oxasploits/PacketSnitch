@@ -1,7 +1,0 @@
-GET /apps/com.spotify.Spotify.TVv2 HTTP/1.1
-Connection: keep-alive
-Accept-Encoding: gzip
-Keep-Alive: 0
-Host: 10.0.1.17:8008
-User-Agent: Spotify/127400477 Linux/0 (PC desktop)
-

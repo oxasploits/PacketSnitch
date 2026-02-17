@@ -1,7 +1,0 @@
-HTTP/1.1 200 OK
-Server: Roku/15.1.4 UPnP/1.0 Roku/15.1.4
-Content-Length: 1306
-Cache-Control: no-cache
-Content-Type: text/xml; charset="utf-8"
-Application-URL: http://10.0.1.11:8060/dial
-

@@ -1,5 +1,0 @@
-GET / HTTP/1.1
-Host: connectivity-check.ubuntu.com.
-Accept: */*
-Connection: close
-
