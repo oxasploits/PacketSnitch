@@ -1,0 +1,11 @@
+POST /transmission/rpc HTTP/1.1
+Host: diffraction.lan.oxasploits.com:9091
+Content-Type: application/json
+X-Transmission-Session-Id: NJ52X5gg6vzVzq9uU0UyvtxH0vM0unEno7QDFVDyVsHbot2O
+Authorization: Basic bWFyc2hhbGw6OTA0MjA3bWFyb3g=
+Content-Length: 24
+Connection: Keep-Alive
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,*
+User-Agent: Mozilla/5.0
+

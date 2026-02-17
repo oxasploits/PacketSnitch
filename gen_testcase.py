@@ -9,6 +9,12 @@
 import os
 import sys
 import argparse
+import magic
+import json
+import numpy as np
+from scipy.stats import entropy
+import socket
+import chardet
 
 try:
     import scapy.all as scapy
@@ -25,6 +31,62 @@ def write_testcase(data, output_dir, pdir, index):
     out.write(data)
 
 
+def write_info(output_dir, pdir, index, dt_json, pkt_json):
+    out = open(
+        output_dir + "/" + pdir + "/pcap.info_packet." + str(index) + ".json", "wb"
+    )
+    merge_json = {
+        "Packet Data": json.loads(pkt_json),
+        "Extra Info": json.loads(dt_json),
+    }
+    out.write(json.dumps(merge_json).encode())
+
+
+def get_datatypes(data, dport):
+    mime_type = magic.from_buffer(data, mime=True)
+    descs = []
+    for ln in data.splitlines():
+        descs.append(magic.from_buffer(ln))
+    udescs = list(set(descs))
+    if "empty" in udescs:
+        udescs.remove("empty")
+    if "data" in udescs:
+        udescs.remove("data")
+    trait_struct = get_traits(data, dport)
+    dt = {"mime-type": mime_type, "data": udescs, "data-traits": trait_struct}
+    return dt
+
+
+def get_serv(port, protocol="tcp"):
+    try:
+        service_name = socket.getservbyport(port, protocol)
+        return service_name
+    except Exception:
+        return "Unknown"
+
+
+def get_traits(data, dport):
+    counts = np.bincount(list(data))
+    entop = entropy(counts, base=2)
+    data_len = len(data)
+    protostr = get_serv(dport)
+    charset = "ascii" if all(32 <= b <= 126 for b in data) else "binary"
+    chars_used = len(set(data))
+    uniq_chars = set(data)
+    encoding = chardet.detect(data)
+    return {
+        "shannon entropy": entop,
+        "length": data_len,
+        "protocol": protostr,
+        "characters": {
+            "charset": charset,
+            "characters used": chars_used,
+            "unique characters": bytearray(list(uniq_chars)).hex(),
+            "encoding": encoding,
+        },
+    }
+
+
 def parse_pcap(pcap_path, srcp, dstp):
     print(
         "Generating testcases based on " + sys.argv[1] + ".  This will take a while..."
@@ -39,14 +101,36 @@ def parse_pcap(pcap_path, srcp, dstp):
             dport_dir = str(dport)
             if (srcp is None or sport == srcp) and (dstp is None or dport == dstp):
                 if raw_d is not None and len(raw_d) > 0:
-                    print(raw_d)
                     write_testcase(raw_d, args.output, dport_dir, s)
+                    dt_struct = get_datatypes(raw_d, dport)
+                    pkt_struct = {
+                        "IP": {
+                            "source": str(p["IP"].src),
+                            "destination": str(p["IP"].dst),
+                            "ip checksum": int(p["IP"].chksum),
+                        },
+                        "TCP": {
+                            "source port": int(sport),
+                            "destination port": int(dport),
+                            "tcp checksum": int(p["TCP"].chksum),
+                            "urgent flag": bool(p["TCP"].urgptr),
+                            "tcp flags": str(p["TCP"].flags),
+                            "options": list(p["TCP"].options),
+                        },
+                    }
+                    write_info(
+                        args.output,
+                        dport_dir,
+                        s,
+                        json.dumps(dt_struct).encode(),
+                        json.dumps(pkt_struct).encode(),
+                    )
                     s = s + 1
     print("Generated " + str(s) + " testcases.")
 
 
 parser = argparse.ArgumentParser(
-    description="Generate testcases from a .pcap file.", prog="gen_testcases"
+    description="Generate payload testcases from a .pcap file.", prog="gen_testcases"
 )
 parser.add_argument("pcap_file", help="The .pcap file to parse.")
 parser.add_argument(
