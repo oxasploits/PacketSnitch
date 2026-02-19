@@ -33,20 +33,23 @@ except ImportError:
 
 
 def get_serv_banner(ip, port, t):
-    socket_cert = "None"
-    encrypted_with = "None"
+    socket_cert = "Unavailable"
+    encrypted_with = "N/A"
+    ssl_version = "N/A"
     pt = "N/A"
+    bannerdata = {}
     if port in [80, 8080, 443]:
         if port == 443:
             pt = get_page_title("https://" + ip + ":" + str(port), t)
         else:
             pt = get_page_title("http://" + ip + ":" + str(port), t)
     else:
-        pt = "Active recon not performed"
+        pt = "N/A"
 
     for item in checked_ips:
-        if item.get("IP") == ip:
-            return item.get("Banner")
+        if item.get("IP") == ip and item.get("Port") == port:
+            return item
+
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(t)
@@ -58,18 +61,8 @@ def get_serv_banner(ip, port, t):
         if ssl_sock:
             socket_cert = ssl_sock.getpeercert()
             encrypted_with = ssl_sock.cipher()
-        banner = s.recv(1024).decode(errors="ignore").strip()
-        if len(banner) > 0:
-            bannerdata = {
-                "IP": ip,
-                "Banner": banner,
-                "SSL Cert": socket_cert,
-                "Encrypted With": encrypted_with,
-            }
-
-            checked_ips.append(bannerdata)
-            s.close()
-            return bannerdata
+            ssl_version = ssl_sock.version()
+        s.close()
     except Exception:
         pass
     try:
@@ -80,44 +73,54 @@ def get_serv_banner(ip, port, t):
         if len(banner) > 0:
             bannerdata = {
                 "IP": ip,
+                "Port": port,
                 "Banner": banner,
+                "Page Title": pt,
+                "SSL Cert": socket_cert,
+                "SSL Version": ssl_version,
+                "Encrypted With": encrypted_with,
             }
 
             checked_ips.append(bannerdata)
             s.close()
             return bannerdata
-
         else:
-            s.send(b"HEAD / HTTP/1.0\r\n\r\n")
+            s.sendall(b"HEAD / HTTP/1.0\r\n\r\n")
             banner = s.recv(1024).decode(errors="ignore").strip()
+            s.close()
             if len(banner) > 0:
                 bannerdata = {
                     "IP": ip,
+                    "Port": port,
                     "Banner": banner,
                     "Page Title": pt,
                     "SSL Cert": socket_cert,
+                    "SSL Version": ssl_version,
                     "Encrypted With": encrypted_with,
                 }
 
                 checked_ips.append(bannerdata)
-                s.close()
                 return bannerdata
+            else:
+                return {
+                    "IP": ip,
+                    "Port": port,
+                    "Page Title": pt,
+                    "SSL Cert": socket_cert,
+                    "SSL Version": ssl_version,
+                    "Encrypted With": encrypted_with,
+                }
     except Exception as e:
-        s.close()
-        checked_ips.append(
-            {
-                "IP": ip,
-                "Page Title": pt,
-                "SSL Cert": socket_cert,
-                "Encrypted With": encrypted_with,
-            }
-        )
-        return {
+        nobdat = {
             "IP": ip,
+            "Port": port,
             "Page Title": pt,
             "SSL Cert": socket_cert,
+            "SSL Version": ssl_version,
             "Encrypted With": encrypted_with,
         }
+        checked_ips.append(nobdat)
+        return nobdat
 
 
 def get_page_title(url, t):
