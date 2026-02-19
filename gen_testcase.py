@@ -33,29 +33,43 @@ except ImportError:
 
 
 def get_serv_banner(ip, port, t):
+    socket_cert = "None"
+    encrypted_with = "None"
+    pt = "N/A"
+    if port in [80, 8080, 443]:
+        if port == 443:
+            pt = get_page_title("https://" + ip + ":" + str(port), t)
+        else:
+            pt = get_page_title("http://" + ip + ":" + str(port), t)
+    else:
+        pt = "Active recon not performed"
+
     for item in checked_ips:
         if item.get("IP") == ip:
             return item.get("Banner")
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(t)
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
     try:
-        sock.connect((ip, port))
-        ssl_sock = context.wrap_socket(sock, server_hostname=ip)
-        banner = ssl_sock.recv(1024).decode(errors="ignore").strip()
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(t)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        ssl_sock = context.wrap_socket(s, server_hostname=ip)
+        ssl_sock.connect((ip, port))
+        if ssl_sock:
+            socket_cert = ssl_sock.getpeercert()
+            encrypted_with = ssl_sock.cipher()
+        banner = s.recv(1024).decode(errors="ignore").strip()
         if len(banner) > 0:
-            checked_ips.append({"IP": ip, "Banner": banner})
-            return banner
-        else:
-            ssl_sock.connect((ip, port))
-            ssl_sock.send(b"HEAD / HTTP/1.0\r\n\r\n")
-            banner = ssl_sock.recv(1024).decode(errors="ignore").strip()
-            ssl_sock.close()
-            if len(banner) > 0:
-                checked_ips.append({"IP": ip, "Banner": banner})
-                return banner
+            bannerdata = {
+                "IP": ip,
+                "Banner": banner,
+                "SSL Cert": socket_cert,
+                "Encrypted With": encrypted_with,
+            }
+
+            checked_ips.append(bannerdata)
+            s.close()
+            return bannerdata
     except Exception:
         pass
     try:
@@ -63,20 +77,47 @@ def get_serv_banner(ip, port, t):
         s.settimeout(t)
         s.connect((ip, port))
         banner = s.recv(1024).decode(errors="ignore").strip()
-        s.close()
         if len(banner) > 0:
-            checked_ips.append({"IP": ip, "Banner": banner})
-            return banner
+            bannerdata = {
+                "IP": ip,
+                "Banner": banner,
+            }
+
+            checked_ips.append(bannerdata)
+            s.close()
+            return bannerdata
+
         else:
-            s.connect((ip, port))
             s.send(b"HEAD / HTTP/1.0\r\n\r\n")
             banner = s.recv(1024).decode(errors="ignore").strip()
             if len(banner) > 0:
-                checked_ips.append({"IP": ip, "Banner": banner})
-                return banner
-    except Exception:
-        checked_ips.append({"IP": ip, "Banner": "No banner returned"})
-        return "No banner returned"
+                bannerdata = {
+                    "IP": ip,
+                    "Banner": banner,
+                    "Page Title": pt,
+                    "SSL Cert": socket_cert,
+                    "Encrypted With": encrypted_with,
+                }
+
+                checked_ips.append(bannerdata)
+                s.close()
+                return bannerdata
+    except Exception as e:
+        s.close()
+        checked_ips.append(
+            {
+                "IP": ip,
+                "Page Title": pt,
+                "SSL Cert": socket_cert,
+                "Encrypted With": encrypted_with,
+            }
+        )
+        return {
+            "IP": ip,
+            "Page Title": pt,
+            "SSL Cert": socket_cert,
+            "Encrypted With": encrypted_with,
+        }
 
 
 def get_page_title(url, t):
@@ -200,15 +241,6 @@ def get_traits(data, dport, srcip, destip, timeout):
     charset = "ascii" if all(32 <= b <= 126 for b in data) else "binary"
     chars_used = len(set(data))
     uniq_chars = set(data)
-    pt = "N/A"
-    if ar:
-        if dport in [80, 8080, 443]:
-            if dport == 443:
-                pt = get_page_title("https://" + destip + ":" + str(dport), timeout)
-            else:
-                pt = get_page_title("http://" + destip + ":" + str(dport), timeout)
-    else:
-        pt = "Active recon not performed"
     if ar:
         banner = get_serv_banner(destip, dport, timeout)
     else:
@@ -232,8 +264,7 @@ def get_traits(data, dport, srcip, destip, timeout):
         },
         "Length": data_len,
         "Port Protcol": protostr,
-        "Page Title": pt,
-        "Server Banner": banner,
+        "Server Info": banner,
         "Characters": {
             "Charset": charset,
             "Encoding": encoding,
@@ -328,8 +359,7 @@ parser.add_argument(
     "-a",
     "--active-recon",
     help="Perform active reconnaissance to gather extra info (geoip, banners, titles).",
-    type=bool,
-    default=False,
+    action="store_true",
 )
 args = parser.parse_args()
 ar = args.active_recon
