@@ -25,8 +25,9 @@ from bs4 import BeautifulSoup
 import ssl
 import csv
 
-database_path = "GeoLite2-City.mmdb"
-icann_csv_path = "service-names-port-numbers.csv"
+database_path = "common/GeoLite2-City.mmdb"
+mac_vendors_path = "common/mac-vendors-export.csv"
+icann_csv_path = "common/service-names-port-numbers.csv"
 checked_ips = []
 ar = "False"
 
@@ -55,7 +56,23 @@ def get_port_description(port, protocol="tcp"):
                     continue
 
 
-def get_serv_banner(ip, port, t):
+def reverse_dns_lookup(ip):
+    try:
+        dat = socket.gethostbyaddr(ip)
+        return (
+            {"Resolved": True, "Error": "", "Hostnames": dat}
+            if dat and len(dat) > 0
+            else {"Resolved": False, "Error": "No PTR record found", "Hostnames": []}
+        )
+    except Exception as e:
+        return {
+            "Resolved": False,
+            "Error": "Address resolution error: " + str(e),
+            "Hostnames": [],
+        }
+
+
+def get_serv_banner(ip, port, t, hostname):
     socket_cert = "Unavailable"
     encrypted_with = "N/A"
     ssl_version = "N/A"
@@ -63,9 +80,9 @@ def get_serv_banner(ip, port, t):
     bannerdata = {}
     if port in [80, 8080, 443]:
         if port == 443:
-            pt = get_page_title("https://" + ip + ":" + str(port), t)
+            pt = get_page_title("https://" + hostname + ":" + str(port), t)
         else:
-            pt = get_page_title("http://" + ip + ":" + str(port), t)
+            pt = get_page_title("http://" + hostname + ":" + str(port), t)
     else:
         pt = "N/A"
 
@@ -153,7 +170,11 @@ def get_page_title(url, t):
         res.raise_for_status()
         cont = res.content
         soup = BeautifulSoup(cont, "html.parser")
-        return soup.title.string if soup.title else "No title found"
+        return (
+            soup.title.string
+            if soup.title
+            else "Error Fetching title: 200 No webpage title found"
+        )
     except Exception as e:
         return "Error fetching title: " + str(e)
 
@@ -272,7 +293,20 @@ def get_traits(data, dport, srcip, destip, timeout):
     chars_used = len(set(data))
     uniq_chars = set(data)
     if ar:
-        banner = get_serv_banner(destip, dport, timeout)
+        hostn = reverse_dns_lookup(destip)
+    else:
+        hostn = {
+            "Resolved": False,
+            "Error": "Active recon not performed",
+            "Hostnames": [],
+        }
+    if ar:
+        banner = get_serv_banner(
+            destip,
+            dport,
+            timeout,
+            hostn.get("Hostnames")[0] if hostn.get("Resolved") else destip,
+        )
     else:
         banner = "Active recon not performed"
     encoding = chardet.detect(data)
@@ -292,10 +326,11 @@ def get_traits(data, dport, srcip, destip, timeout):
                 "Class": nc_info_dest,
                 "Location": loc_info_dest,
             },
+            "Port Protcol": protostr,
+            "Port Description": port_desc,
+            "Hostnames": hostn,
         },
         "Length": data_len,
-        "Port Protcol": protostr,
-        "Port Description": port_desc,
         "Server Info": banner,
         "Characters": {
             "Charset": charset,
@@ -306,6 +341,15 @@ def get_traits(data, dport, srcip, destip, timeout):
     }
 
 
+def mac_addr_to_vendor(mac):
+    with open(mac_vendors_path, newline="", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if "Mac Prefix" in row and "Vendor Name" in row:
+                if mac.upper().startswith(row["Mac Prefix"].upper()):
+                    return row["Vendor Name"]
+
+
 def parse_pcap(pcap_path, srcp, dstp, tmout):
     print(
         "Generating testcases based on " + sys.argv[1] + ".  This will take a while..."
@@ -313,6 +357,14 @@ def parse_pcap(pcap_path, srcp, dstp, tmout):
     s = 0
     packets = scapy.rdpcap(pcap_path)
     for p in packets:
+        mac_addr_src = p.src if p.haslayer("Ethernet") else "N/A"
+        mac_addr_dst = p.dst if p.haslayer("Ethernet") else "N/A"
+        mac_vendor_src = (
+            mac_addr_to_vendor(mac_addr_src) if mac_addr_src != "N/A" else "N/A"
+        )
+        mac_vendor_dst = (
+            mac_addr_to_vendor(mac_addr_dst) if mac_addr_dst != "N/A" else "N/A"
+        )
         if p.haslayer("TCP"):
             raw_d = p["TCP"].payload.original
             sport = p["TCP"].sport
@@ -330,6 +382,12 @@ def parse_pcap(pcap_path, srcp, dstp, tmout):
                     pkt_struct = {
                         "Packet Processed": int(s),
                         "Packet Timestamp": timestamp,
+                        "Ethernet Frame": {
+                            "MAC Source": mac_addr_src,
+                            "MAC Destination": mac_addr_dst,
+                            "MAC Source Vendor": mac_vendor_src,
+                            "MAC Destination Vendor": mac_vendor_dst,
+                        },
                         "IP": {
                             "Source IP": str(p["IP"].src),
                             "Destination IP": str(p["IP"].dst),
