@@ -1,6 +1,4 @@
-# oxagast
-#
-
+# oxagas# Import standard and third-party libraries for argument parsing, file handling, networking, compression, and data processing
 import argparse
 import csv
 import json
@@ -24,13 +22,17 @@ from bs4 import BeautifulSoup
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from scipy.stats import entropy
 
+# Try importing scapy for packet parsing
 try:
     import scapy.all as scapy
 except ImportError:
     import scapy
 
+# Global variables for caching and configuration
 checked_ips = []
 ar = "False"
+
+# Load YAML configuration file
 
 
 def config_loader(filename="conf.yaml"):
@@ -39,6 +41,9 @@ def config_loader(filename="conf.yaml"):
         sys.exit(1)
     with open(filename, "r") as f:
         return yaml.safe_load(f)
+
+
+# Lookup port description from ICANN CSV database
 
 
 def get_port_description(port, protocol="tcp"):
@@ -63,6 +68,9 @@ def get_port_description(port, protocol="tcp"):
                     continue
 
 
+# Perform reverse DNS lookup for an IP address
+
+
 def reverse_dns_lookup(ip):
     try:
         dat = socket.gethostbyaddr(ip)
@@ -79,12 +87,16 @@ def reverse_dns_lookup(ip):
         }
 
 
+# Fetch server banner and SSL certificate information for a given IP and port
+
+
 def get_serv_banner(ip, port, t, hostname):
     socket_cert = "Unavailable"
     encrypted_with = "N/A"
     ssl_version = "N/A"
     pt = "N/A"
     bannerdata = {}
+    # Get page title for HTTP/HTTPS ports
     if port in [80, 8080, 443]:
         if port == 443:
             pt = get_page_title("https://" + hostname + ":" + str(port), t)
@@ -92,9 +104,11 @@ def get_serv_banner(ip, port, t, hostname):
             pt = get_page_title("http://" + hostname + ":" + str(port), t)
     else:
         pt = "N/A"
+    # Check cache for previous banner fetch
     for item in checked_ips:
         if item.get("IP") == ip and item.get("Port") == port:
             return item
+    # Try to fetch SSL certificate
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(t)
@@ -110,6 +124,7 @@ def get_serv_banner(ip, port, t, hostname):
         s.close()
     except Exception:
         pass
+    # Try to fetch banner from server
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(t)
@@ -168,6 +183,9 @@ def get_serv_banner(ip, port, t, hostname):
         return nobdat
 
 
+# Fetch the page title from a URL
+
+
 def get_page_title(url, t):
     try:
         requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
@@ -184,6 +202,9 @@ def get_page_title(url, t):
         return "Error fetching title: " + str(e)
 
 
+# Write raw packet data to a testcase file
+
+
 def write_testcase(data, output_dir, pdir, index):
     if not os.path.exists(output_dir + "/" + pdir):
         os.mkdir(output_dir + "/" + pdir)
@@ -191,6 +212,9 @@ def write_testcase(data, output_dir, pdir, index):
         output_dir + "/" + pdir + "/pcap.data_packet." + str(index) + ".dat", "wb"
     )
     out.write(data)
+
+
+# Write packet info and extra info to JSON files
 
 
 def write_info(output_dir, pdir, index, dt_json, pkt_json):
@@ -211,6 +235,9 @@ def write_info(output_dir, pdir, index, dt_json, pkt_json):
     return merge_json
 
 
+# Determine IP network class (A/B/C/D/E)
+
+
 def get_netclass(ip):
     fo = int(ip.split(".")[0])
     if 0 <= fo <= 127:
@@ -221,6 +248,9 @@ def get_netclass(ip):
         return "C"
     else:
         return "Unknown (D/E)?"
+
+
+# Safely decompress data using zlib/gzip
 
 
 def safe_decompress(compressed_data):
@@ -234,6 +264,9 @@ def safe_decompress(compressed_data):
     except zlib.error as e:
         pass
     return result
+
+
+# Get GeoIP information for an IP address
 
 
 def get_geoip_info(ip):
@@ -252,6 +285,9 @@ def get_geoip_info(ip):
         return {"Location": "Localnet"}
     except Exception as e:
         return {"Location": "Error: " + str(e)}
+
+
+# Analyze packet data for MIME type, decompression, and traits
 
 
 def get_datatypes(data, dport, srcip, destip, tmout):
@@ -286,12 +322,18 @@ def get_datatypes(data, dport, srcip, destip, tmout):
     return dt
 
 
+# Get service name for a port using socket library
+
+
 def get_serv(port, protocol="tcp"):
     try:
         serv_name = socket.getservbyport(port, protocol)
         return serv_name
     except Exception:
         return "Unknown"
+
+
+# Extract traits from packet data (entropy, network info, banners, charset, etc.)
 
 
 def get_traits(data, dport, srcip, destip, timeout):
@@ -351,6 +393,9 @@ def get_traits(data, dport, srcip, destip, timeout):
     }
 
 
+# Lookup MAC address vendor from CSV database
+
+
 def mac_addr_to_vendor(mac):
     if not os.path.exists(mac_vendors_path):
         print("Error: MAC vendor database file not found!", file=sys.stderr)
@@ -361,6 +406,9 @@ def mac_addr_to_vendor(mac):
             if "Mac Prefix" in row and "Vendor Name" in row:
                 if mac.upper().startswith(row["Mac Prefix"].upper()):
                     return row["Vendor Name"]
+
+
+# Parse .pcap file and generate testcases and info files
 
 
 def parse_pcap(pcap_path, srcp, dstp, tmout):
@@ -458,6 +506,7 @@ def parse_pcap(pcap_path, srcp, dstp, tmout):
     print("Generated " + str(s) + " testcases.", file=sys.stderr)
 
 
+# Argument parser setup for command-line options
 parser = argparse.ArgumentParser(
     prog="gen_testcase.py",
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -523,6 +572,8 @@ parser.add_argument(
 verbose = parser.parse_args().verbose
 args = parser.parse_args()
 config = config_loader(args.conf if args.conf else "conf.yaml")
+
+# Load database paths from config and print status
 if config["database_locations"]["geoip"]:
     geodat_path = config["database_locations"]["geoip"]
     if verbose >= 1:
@@ -576,13 +627,15 @@ else:
             "Error: ICANN port description database location not specified in config!",
             file=sys.stderr,
         )
+
+# Set active recon flag from config if not provided as argument
 if not args.active_recon:
     if config["active_recon"]:
         ar = config["active_recon"]
     else:
         ar = False
 
-
+# Main execution logic: check files, handle output directory, and run parsing
 if not os.path.exists(args.pcap_file):
     print("The .pcap file does not exist.", file=sys.stderr)
     sys.exit(1)
