@@ -87,8 +87,8 @@ active_recon: true
 
 ## License
 
-MIT License
+GPL v3
 
 ## Author
 
-Your Name Here
+Marshall Whittaker
