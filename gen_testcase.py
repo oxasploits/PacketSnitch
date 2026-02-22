@@ -17,6 +17,7 @@ import geoip2.database
 import magic
 import numpy as np
 import requests
+import ollama
 import yaml
 from bs4 import BeautifulSoup
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -32,9 +33,17 @@ except ImportError:
 checked_ips = []
 ar = "False"
 
+
+def llm_query(packet_infos):
+    res = ollama.generate(
+        model="minimax-m2.5:cloud",
+        prompt="Give a sub 200 word analysis of the following packet in paragraph form: "
+        + packet_infos,
+    )
+    return {"Summary": res["response"]}
+
+
 # Load YAML configuration file
-
-
 def config_loader(filename="conf.yaml"):
     if not os.path.exists(filename):
         print("Error: Configuration file not found!", file=sys.stderr)
@@ -91,12 +100,12 @@ def get_serv_banner(ip, port, t, hostname):
     pt = "N/A"
     bannerdata = {}
     # Get page title for HTTP/HTTPS ports
-    if port in [80, 8080, 443]:
+    try:
         if port == 443:
             pt = get_page_title("https://" + hostname + ":" + str(port), t)
         else:
             pt = get_page_title("http://" + hostname + ":" + str(port), t)
-    else:
+    except Exception:
         pt = "N/A"
     # Check cache for previous banner fetch
     for item in checked_ips:
@@ -157,7 +166,6 @@ def get_serv_banner(ip, port, t, hostname):
                 return {
                     "IP": ip,
                     "Port": port,
-                    "Banner": "Error fetching banner",
                     "Page Title": pt,
                     "SSL Cert": socket_cert,
                     "SSL Version": ssl_version,
@@ -167,7 +175,6 @@ def get_serv_banner(ip, port, t, hostname):
         nobdat = {
             "IP": ip,
             "Port": port,
-            "Banner": "Error fetching banner: " + str(e),
             "Page Title": pt,
             "SSL Cert": socket_cert,
             "SSL Version": ssl_version,
@@ -205,7 +212,7 @@ def write_testcase(data, output_dir, pdir, index):
 
 
 # Write packet info and extra info to JSON files
-def write_info(output_dir, pdir, index, dt_json, pkt_json):
+def write_info(output_dir, pdir, index, dt_json, pkt_json, perp):
     out = open(
         output_dir + "/" + pdir + "/pcap.info_packet." + str(index) + ".json", "wb"
     )
@@ -213,14 +220,23 @@ def write_info(output_dir, pdir, index, dt_json, pkt_json):
         "Packet Info": json.loads(pkt_json),
         "Extra Info": json.loads(dt_json),
     }
+    # checking modulo of of the index to determine whether to query the LLM for
+    # analysis to avoid excessive API calls while still providing insights on
+    # a subset of packets
+    pkt_num = int(index)
+    if pkt_num % perp == 0:
+        llm_info = llm_query(json.dumps(merge_json))
+        with_llm = {"Packet": merge_json, "Analysis": llm_info}
+    else:
+        with_llm = {"Packet": merge_json}
     out.write(json.dumps(merge_json).encode())
     out.close()
     main = open("all_testcases_info.json", "a")
-    main.write(json.dumps(merge_json) + "\n")
+    main.write(json.dumps(with_llm) + "\n")
     main.close()
     if verbose >= 2:
-        print(json.dumps(merge_json, indent=2))
-    return merge_json
+        print(json.dumps(with_llm, indent=2))
+    return with_llm
 
 
 # Determine IP network class (A/B/C/D/E)
@@ -362,7 +378,9 @@ def get_traits(data, dport, srcip, destip, timeout):
         "Server Info": banner,
         "Characters": {
             "Charset": charset,
-            "Encoding": encoding,
+            "Encoding": encoding
+            if entop <= 2.5
+            else "Unavailable for high entropy data",
             "Characters used": chars_used,
             "Unique characters": bytearray(list(uniq_chars)).hex(),
         },
@@ -386,6 +404,9 @@ def mac_addr_to_vendor(mac):
 def parse_pcap(pcap_path, srcp, dstp, tmout):
     print("Generating testcases based on " + pcap_path + ".  This will take a while...")
     s = 0
+    total_pkts = len(scapy.rdpcap(pcap_path))  # type: ignore
+    per_pkts = int((15 / 100) * total_pkts)
+    pp = int((15 / 100) * per_pkts)
     packets = scapy.rdpcap(pcap_path)  # type: ignore
     for p in packets:
         mac_addr_src = p.src if p.haslayer("Ethernet") else "N/A"
@@ -473,6 +494,7 @@ def parse_pcap(pcap_path, srcp, dstp, tmout):
                         s,
                         json.dumps(dt_struct).encode(),
                         json.dumps(pkt_struct).encode(),
+                        pp,
                     )
                     s = s + 1
     print("Generated " + str(s) + " testcases.", file=sys.stderr)
