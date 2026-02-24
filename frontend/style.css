@@ -1,0 +1,139 @@
+:root {
+  --color-1: #7f80ff;
+  --color-2: #004085;
+  --color-3: #8a87c0;
+  --color-4: #000000;
+}
+
+/* Page background */
+body {
+  margin: 0;
+  background-color: #333333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+/* Outer container */
+.container_box {
+  width: 90%;
+  height: 90%;
+  border: 3px solid var(--color-3);
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  box-sizing: border-box;
+  background-color: black;
+}
+
+/* Top title bar */
+.top_bar {
+  height: 40px;
+  background-color: var(--color-1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--color-4);
+  font-family: "Rubik Glitch", cursive;
+  font-size: 18pt;
+}
+
+/* Entry bar */
+.entry_bar {
+  height: 60px;
+  background-color: var(--color-2);
+  border: 1px solid var(--color-4);
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
+  gap: 8px;
+}
+
+.entry_bar input[type="text"] {
+  flex: 1;
+  padding: 5px;
+  background-color: black;
+  color: white;
+  border: 1px solid grey;
+}
+
+/* Content area */
+.content_area {
+  flex: 1;
+  display: flex;
+  margin-top: 5px;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 180px;
+  background-color: var(--color-4);
+  border: 1px solid var(--color-3);
+  padding: 3px;
+  box-sizing: border-box;
+  color: var(--color-3);
+}
+
+.sidebar select {
+  width: 100%;
+  margin-bottom: 5px;
+  background-color: black;
+  border: 1px solid var(--color-3);
+  color: var(--color-3);
+}
+
+.sidebar option {
+  color: var(--color-1);
+}
+
+/* Main panel */
+.main_panel {
+  flex: 1;
+  margin-left: 5px;
+  border: 1px solid var(--color-4);
+  background-color: #111;
+  color: white;
+  padding: 5px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.custom-pcap-upload {
+  background-color: var(--color-3); /* Green */
+  border: none;
+  color: white;
+  padding: 2px 1px;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+  font-size: 14px;
+  margin: 2px 2px;
+  cursor: pointer;
+}
+
+/* Status bar */
+.status_bar {
+  margin-top: 5px;
+  height: 20px;
+  background-color: black;
+  color: white;
+  border: 1px solid grey;
+  display: flex;
+  align-items: center;
+  padding-left: 5px;
+  font-size: small;
+}
+
+.logo-cont {
+  width: 45px; /* or a percentage, e.g., 100% */
+  height: 45px;
+}
+
+.logo-cont img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* or 'contain' */
+}
