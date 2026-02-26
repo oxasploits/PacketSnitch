@@ -25,7 +25,10 @@
 
   <body>
     <div class="container_box">
-      <div class="top_bar">PacketSnitch</div>
+      <div class="top_bar">
+        <div class="titleline">PacketSnitch</div>
+        <div class="byline">by oxasploits</div>
+      </div>
 
       <div class="entry_bar">
         <div class="logo-cont">
@@ -60,10 +63,16 @@
             <option>ALL hosts</option>
             <option>Localnet Hosts</option>
           </select>
+          <select id="Format" hidden>
+            <option>Tables</option>
+            <option>Pretty JSON</option>
+            <option>Raw</option>
+          </select>
         </div>
 
         <div id="main" class="main_panel">
-          Choose a json decode using the button to the left.
+          Choose a json decode using the button to the left, then select an IP
+          to inspect.
         </div>
       </div>
 
@@ -90,10 +99,11 @@
           }
         });
 
-      function build_table(h1, h2) {
+      function output_frame(h1, h2) {
         const main_panel = document.getElementById("main");
-
+        main_panel.textContent = "";
         main_panel.innerHTML =
+          "<h2>Capture Analysis:</h2>" +
           final_summary +
           "<br><br><hr><br>" +
           '<table width=80% class="main_panel" id="packet_space"><thead><tr><th width=25%>' +
@@ -118,6 +128,7 @@
             return;
           }
           document.getElementById("target_hosts").hidden = false;
+          document.getElementById("Format").hidden = false;
           document.getElementById("summary-btn").hidden = false;
           for (const host in packets["Host"]) {
             if (!hosts.includes(host)) {
@@ -129,7 +140,6 @@
               targets_list.appendChild(newhost);
             }
           }
-          main_panel.textContent = final_summary;
         };
 
         reader.onerror = (error) => {
@@ -156,6 +166,61 @@
         c2.innerText = d2;
       }
 
+      function hostPacketInfo(ip) {
+        const selected = ip;
+        const host_filter = document.getElementById("host_filter");
+        const main_panel = document.getElementById("main");
+        const packet_space = document.getElementById("packet_space");
+        //  for (const host in packets["Host"]) {
+        const hostPackets = packets["Host"][selected];
+        for (const packet in hostPackets) {
+          if (packet !== "Summary") {
+            const packetData = hostPackets[packet];
+            for (const key in packetData) {
+              if (key === "Packet Info") {
+                const packetInfo = packetData[key];
+                for (const info in packetInfo) {
+                  if (info === "IP") {
+                    const ipInfo = packetInfo[info];
+                    for (const ipKey in ipInfo) {
+                      addRow(ipKey, ipInfo[ipKey]);
+                      status.textContent =
+                        "Status: Displaying packet information for " + selected;
+                      setTimeout(() => {
+                        status.textContent = "Status: Ready";
+                      }, 3000);
+                    }
+                  }
+                  if (info === "TCP") {
+                    const tcpInfo = packetInfo[info];
+                    if (tcpInfo["TCP Flag Data"]) {
+                      flags = tcpInfo["TCP Flag Data"]["Flags"];
+                      addRow("TCP Flags", flags);
+                    }
+                    // iterate over the rest of hte keys in tcpInfo and add them to the table
+                    if (tcpInfo["Source port"] && tcpInfo["Destination port"]) {
+                      addRow("Source Port", tcpInfo["Source port"]);
+                      addRow("Destination Port", tcpInfo["Destination port"]);
+                      addRow("Urgent flag", tcpInfo["Urgent flag"]);
+                      addRow("TCP Checksum", tcpInfo["TCP checksum"]);
+                      console.log("Added TCP port information for " + selected);
+                    }
+                    status.textContent =
+                      "Status: Displaying packet information for " + selected;
+                    setTimeout(() => {
+                      status.textContent = "Status: Ready";
+                    }, 3000);
+                  }
+                }
+                addRow("***", "***");
+              }
+            }
+          }
+        }
+        //  }
+        return;
+      }
+
       document
         .getElementById("target_hosts")
         .addEventListener("change", function () {
@@ -166,67 +231,23 @@
           if (host_filter.value !== selected) {
             host_filter.value = selected;
           }
+
+          output_frame("Packet Info", "Details");
           if (selected === "ALL hosts") {
             host_filter.value = "0.0.0.0";
-          }
-          build_table("Packet Info", "Details");
-          const hostPackets = packets["Host"][selected];
-          for (const packet in hostPackets) {
-            if (packet !== "Summary") {
-              const packetData = hostPackets[packet];
-              for (const key in packetData) {
-                if (key === "Packet Info") {
-                  const packetInfo = packetData[key];
-                  for (const info in packetInfo) {
-                    if (info === "IP") {
-                      const ipInfo = packetInfo[info];
-                      for (const ipKey in ipInfo) {
-                        addRow(ipKey, ipInfo[ipKey]);
-                        status.textContent =
-                          "Status: Displaying packet information for " +
-                          selected;
-                        setTimeout(() => {
-                          status.textContent = "Status: Ready";
-                        }, 3000);
-                      }
-                    }
-                    if (info === "TCP") {
-                      const tcpInfo = packetInfo[info];
-                      if (tcpInfo["TCP Flag Data"]) {
-                        flags = tcpInfo["TCP Flag Data"]["Flags"];
-                        addRow("TCP Flags", flags);
-                      }
-                      // iterate over the rest of hte keys in tcpInfo and add them to the table
-                      if (
-                        tcpInfo["Source port"] &&
-                        tcpInfo["Destination port"]
-                      ) {
-                        addRow("Source Port", tcpInfo["Source port"]);
-                        addRow("Destination Port", tcpInfo["Destination port"]);
-                        addRow("Urgent flag", tcpInfo["Urgent flag"]);
-                        addRow("TCP Checksum", tcpInfo["TCP checksum"]);
-                        console.log(
-                          "Added TCP port information for " + selected,
-                        );
-                      }
-                      status.textContent =
-                        "Status: Displaying packet information for " + selected;
-                      setTimeout(() => {
-                        status.textContent = "Status: Ready";
-                      }, 3000);
-                    }
-                  }
-                  addRow("***", "***");
-                }
-              }
+            for (const ip in packets["Host"]) {
+              hostPacketInfo(ip);
             }
+          } else {
+            hostPacketInfo(selected);
           }
         });
 
       document
         .getElementById("summary-btn")
         .addEventListener("click", function () {
-          document.getElementById("main").textContent = final_summary;
+          document.getElementById("main").innerHTML =
+            "<h2>Capture Analysis:</h2>" + final_summary + "<br><hr>";
         });
     </script>
     <br />
