@@ -45,7 +45,6 @@ threads = []
 summaries = []
 by_host_dict = {}
 all_info = []
-final_summary = ""
 
 
 def llm_query(packet_infos):
@@ -272,7 +271,7 @@ def join_info(output_dir, pdir, index, dt_json, pkt_json, perp, host):
     return merge_json
 
 
-def by_host(out):
+def by_host(out, final_summary):
     for host in all_info:
         if host.get("Host") not in by_host_dict:
             by_host_dict[host.get("Host")] = []
@@ -604,6 +603,7 @@ def start_threading():
                     )
                     final_summary = final_res["response"]
                     open(outd + "/final_summary.txt", "w").write(final_summary)
+                    return final_summary
                 else:
                     print(
                         "\nLLM Final summary generation failed or returned no response."
@@ -815,8 +815,8 @@ if not os.path.exists(args.pcap_file):
     sys.exit(1)
 if not os.path.exists(outd):
     os.mkdir(outd)
-    start_threading()
-
+    final_s = start_threading()
+    by_host(outd, final_s)
 else:
     if (
         input(
@@ -832,8 +832,8 @@ else:
         # Small delay to ensure file system has completed deletions
         time.sleep(1)
         os.mkdir(outd)
-        start_threading()
-        by_host(outd)
+        final_s = start_threading()
+        by_host(outd, final_s)
     finally:
         print(
             "Processing complete. Generated testcases and info files are located in: "

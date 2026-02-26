@@ -16,9 +16,9 @@
     <style>
       body {
         background-image: url("background.jpg");
-        background-repeat: no-repeat; /* Prevents the image from tiling */
-        background-size: cover; /* Scales the image to cover the entire container */
-        background-attachment: fixed; /* Keeps the background image in place when scrolling */
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-attachment: fixed;
       }
     </style>
   </head>
@@ -44,7 +44,7 @@
             name="jsonFile"
           >
             <input type="file" id="json-upload" name="json-up" hidden />
-            <label for="json-upload" class="custom-upload">choose json</label>
+            <label for="json-upload" class="custom-btns">choose json</label>
           </form>
           <form
             method="post"
@@ -53,17 +53,24 @@
             name="pcapFile"
           >
             <input type="file" id="pcap-upload" name="pcap-up" hidden />
-            <label for="pcap-upload" class="custom-upload">choose pcap</label>
+            <label for="pcap-upload" class="custom-btns">choose pcap</label>
           </form>
+          <input
+            type="button"
+            id="summary-btn"
+            value="Summary"
+            class="custom-btns"
+          />
 
+          <br /><br />
           <!-- Dropdown menus -->
-          <select id="target_hosts">
+          <select id="target_hosts" hidden>
             <option>ALL hosts</option>
             <option>Localnet Hosts</option>
           </select>
         </div>
 
-        <div id="content_area" class="main_panel">
+        <div id="main" class="main_panel">
           Analysis output will appear here...
         </div>
       </div>
@@ -74,31 +81,23 @@
     </div>
     <script type="text/javascript">
       const contentTarget = document.getElementById("json-upload");
-      // script.js
+      let packets = {};
+      let final_summary = "";
       const form = document.getElementById("pcapFile");
       const fileInput = document.getElementById("pcap-upload");
       const status = document.getElementById("status");
+      let hosts = ["0.0.0.0"];
 
       form.addEventListener("submit", function (event) {
-        // Prevent the default form submission that would refresh the page
         event.preventDefault();
-
-        // Get the selected file(s) from the input element
         const files = fileInput.files;
-
         if (files.length > 0) {
           const file = files[0];
-
-          // Create a FormData object to hold the file data
           const formData = new FormData();
-          // Append the file to the FormData object, using the 'name' attribute from the HTML input
           formData.append("myFile", file, file.name);
-
-          // Use the fetch API to send the file to the server
           fetch("/upload-endpoint", {
-            // Replace with your backend endpoint URL
-            method: "POST", // Use POST method
-            body: formData, // The FormData object automatically sets the correct Content-Type header
+            method: "POST",
+            body: formData,
           })
             .then((response) => response.json())
             .then((data) => {
@@ -117,42 +116,79 @@
       document
         .getElementById("json-upload")
         .addEventListener("change", function (event) {
-          const file = event.target.files[0]; // Get the selected files as a FileList
-          var input = document.getElementById("json-upload");
+          const file = event.target.files[0];
           if (file) {
-            console.log("Selected file:", file.name);
-            readFileContent(file);
+            status.textContent = "Status: Selected file:" + file.name;
+            processFile(file);
           }
         });
 
-      // Function to read the file content using FileReader
-      function readFileContent(file) {
+      function processFile(file) {
         const reader = new FileReader();
-
-        // Define what happens when the file is loaded
         reader.onload = (event) => {
-          // The file content is available in event.target.result
-          main_panel = document.getElementById("content_area");
-          console.log("File content:", event.target.result);
+          const main_panel = document.getElementById("main");
           packets = JSON.parse(event.target.result);
-          // iterate over the json values in the "Host" field and print the next key to main main_panel
-          for (const host in packets["Host"]) {
-            console.log("Host:", host);
-            console.log("Next key:", packets["Host"][host]);
+          final_summary = packets["Final Summary"];
+          if (final_summary == undefined) {
+            main_panel.textContent = "Error: Final Summary not found in JSON.";
+            status.textContent = "Error: Final Summary is undefined.";
+            return;
           }
-          document.getElementById("content_area").textContent = packets["Host"];
+          document.getElementById("target_hosts").hidden = false;
+          for (const host in packets["Host"]) {
+            if (!hosts.includes(host)) {
+              hosts.push(host);
+              const targets_list = document.getElementById("target_hosts");
+              const newhost = document.createElement("option");
+              newhost.textContent = host;
+              newhost.value = host;
+              targets_list.appendChild(newhost);
+            }
+          }
+          main_panel.textContent = final_summary;
         };
 
-        // Define what happens if an error occurs
         reader.onerror = (error) => {
-          console.error("Error reading file:", error);
+          status.textContent = "Status: Error reading file: " + error;
         };
 
-        // Start reading the file as text (other methods available for different file types)
-        // Use readAsText() for text files like .txt, .csv, .json
-        // Use readAsDataURL() for images or other binary files to get a data URL
         reader.readAsText(file);
       }
+
+      document
+        .getElementById("target_hosts")
+        .addEventListener("change", function () {
+          const selected = document.getElementById("target_hosts").value;
+          const main_panel = document.getElementById("main");
+          main_panel.textContent = ""; // Clear previous content
+
+          const hostPackets = packets["Host"][selected];
+          for (const packet in hostPackets) {
+            if (packet !== "Summary") {
+              const packetData = hostPackets[packet];
+              for (const key in packetData) {
+                if (key === "Packet Info") {
+                  const packetInfo = packetData[key];
+                  for (const info in packetInfo) {
+                    if (info === "IP") {
+                      const ipInfo = packetInfo[info];
+                      for (const ipKey in ipInfo) {
+                        main_panel.textContent +=
+                          ipKey + ": " + ipInfo[ipKey] + "\n";
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+
+      document
+        .getElementById("summary-btn")
+        .addEventListener("click", function () {
+          document.getElementById("main").textContent = final_summary;
+        });
     </script>
     <br />
   </body>
