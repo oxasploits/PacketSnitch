@@ -25,14 +25,14 @@
 
   <body>
     <div class="container_box">
-      <div class="top_bar">PCAP Analysis Tool by oxagast</div>
+      <div class="top_bar">PacketSnitch</div>
 
       <div class="entry_bar">
         <div class="logo-cont">
           <img src="logo.png" />
         </div>
         <label style="color: white">ip/hostname:</label>
-        <input type="text" placeholder="0.0.0.0" />
+        <input id="host_filter" type="text" placeholder="0.0.0.0" />
       </div>
 
       <div class="content_area">
@@ -57,18 +57,9 @@
           </form>
 
           <!-- Dropdown menus -->
-          <select>
-            <option>Protocol Filter</option>
-            <option>TCP</option>
-            <option>UDP</option>
-            <option>ICMP</option>
-          </select>
-
-          <select>
-            <option>Time Range</option>
-            <option>Last 5 min</option>
-            <option>Last 30 min</option>
-            <option>Full Capture</option>
+          <select id="target_hosts">
+            <option>ALL hosts</option>
+            <option>Localnet Hosts</option>
           </select>
         </div>
 
@@ -78,10 +69,11 @@
       </div>
 
       <div id="status" class="status_bar">Status: Ready</div>
+
+      <div class="footer">oxasploits, llc (2026)</div>
     </div>
     <script type="text/javascript">
       const contentTarget = document.getElementById("json-upload");
-
       // script.js
       const form = document.getElementById("pcapFile");
       const fileInput = document.getElementById("pcap-upload");
@@ -140,9 +132,15 @@
         // Define what happens when the file is loaded
         reader.onload = (event) => {
           // The file content is available in event.target.result
-          contentTarget.textContent = event.target.result;
+          main_panel = document.getElementById("content_area");
           console.log("File content:", event.target.result);
-          parseJsonFile(file);
+          packets = JSON.parse(event.target.result);
+          // iterate over the json values in the "Host" field and print the next key to main main_panel
+          for (const host in packets["Host"]) {
+            console.log("Host:", host);
+            console.log("Next key:", packets["Host"][host]);
+          }
+          document.getElementById("content_area").textContent = packets["Host"];
         };
 
         // Define what happens if an error occurs
@@ -155,31 +153,7 @@
         // Use readAsDataURL() for images or other binary files to get a data URL
         reader.readAsText(file);
       }
-
-      function parseJsonFile(file) {
-        const reader = new FileReader();
-
-        reader.onload = (event) => {
-          try {
-            const jsonData = JSON.parse(event.target.result);
-            console.log("Parsed JSON data:", file.name);
-            status.textContent =
-              "JSON file " + file.name + " successfully parsed!";
-            const main_panel = document.getElementById("content_area");
-            main_panel.textContent = JSON.stringify(jsonData, null, 2);
-
-            // You can now use jsonData for further processing
-          } catch (error) {
-            status.textContent = "Error parsing JSON file!";
-          }
-        };
-
-        reader.onerror = (error) => {
-          status.textContent = "Error reading JSON file!";
-        };
-
-        reader.readAsText(file);
-      }
     </script>
+    <br />
   </body>
 </html>

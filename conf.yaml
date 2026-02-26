@@ -6,10 +6,10 @@ database_locations:
 output_dir: "testcases"
 ollama:
   use_llm: true
-  model: "phi3:mini"
+  # model: "phi3:mini"
   #  model: "deepseek-r1:latest"
-  #  model: "minimax-m2.5:cloud"
+  model: "minimax-m2.5:cloud"
   response_length: 200
   pcap_percentage: 8
-threads: 4
+threads: 6
 final_summary: true

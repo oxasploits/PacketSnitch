@@ -37,7 +37,7 @@ except ImportError:
 checked_ips = []
 ar = "False"
 percentage_pcap = 10
-response_length = 200
+response_length = 100
 use_llm = False
 llm_model = "minimax-m2.5:cloud"
 nthreads = 6
@@ -45,6 +45,7 @@ threads = []
 summaries = []
 by_host_dict = {}
 all_info = []
+final_summary = ""
 
 
 def llm_query(packet_infos):
@@ -53,8 +54,8 @@ def llm_query(packet_infos):
             res = ollama.generate(
                 model=llm_model,
                 prompt="Tell me what you can about this network packet (encoded in json, from pcap),"
-                "its payload, and any interesting or unusual traits: " + packet_infos,
-                options={"num_predict": response_length},
+                "its payload, and any interesting or unusual traits... respond with a single paragraph around 260 words: "
+                + packet_infos,
             )
             if res and "response" in res:
                 summaries.append(res["response"])
@@ -251,15 +252,16 @@ def join_info(output_dir, pdir, index, dt_json, pkt_json, perp, host):
     # analysis to avoid excessive API calls while still providing insights on
     # a subset of packets
     llm_info = llm_query(json.dumps(merge_json))
+    print(llm_info)
     if (
         llm_info
         and "Summary" in llm_info
         and (llm_info["Summary"] != "" and "Error" not in llm_info["Summary"])
     ):
-        merge_json = {"Packet": merge_json, "Analysis": llm_info}
+        with_llm = {"Packet": merge_json, "Analysis": llm_info}
     else:
-        merge_json = {"Packet": merge_json}
-    out.write(json.dumps(merge_json).encode())
+        with_llm = {"Packet": merge_json}
+    out.write(json.dumps(with_llm).encode())
     out.close()
     #    main = open("all_testcases_info.json", "a")
     # main.write(json.dumps(with_llm) + "\n")
@@ -277,7 +279,7 @@ def by_host(out):
         else:
             by_host_dict[host.get("Host")].append(host.get("Packet"))
     open(out + "/all_testcases_info_by_host.json", "w+").write(
-        json.dumps({"Host": by_host_dict}, indent=2)
+        json.dumps({"Host": by_host_dict, "Final Summary": final_summary}, indent=2)
     )
 
 
@@ -600,7 +602,8 @@ def start_threading():
                         "\nFinal LLM Summary of Packet Analyses:\n"
                         + final_res["response"]
                     )
-                    open(outd + "/final_summary.txt", "w").write(final_res["response"])
+                    final_summary = final_res["response"]
+                    open(outd + "/final_summary.txt", "w").write(final_summary)
                 else:
                     print(
                         "\nLLM Final summary generation failed or returned no response."
@@ -790,15 +793,12 @@ if llm_model and use_llm:
                 + ". Ensure you have network connectivity and API access.",
                 file=sys.stderr,
             )
-        if nthreads > 4:
-            nthreads = 4
+        if nthreads > 6:
+            nthreads = 6
             print(
                 "Limiting concurrency to 4 threads to prevent excessive API calls to cloud LLM.",
                 file=sys.stderr,
             )
-    if nthreads > 2:
-        nthreads = 2
-        print("Limiting concurrency to 2 threads to prevent hammering the local LLM")
 
 
 print(
