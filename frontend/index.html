@@ -32,7 +32,7 @@
           <img src="logo.png" />
         </div>
         <label style="color: white">ip/hostname:</label>
-        <input id="host_filter" type="text" placeholder="0.0.0.0" />
+        <input id="host_filter" type="text" placeholder="0.0.0.0" disabled />
       </div>
 
       <div class="content_area">
@@ -46,23 +46,15 @@
             <input type="file" id="json-upload" name="json-up" hidden />
             <label for="json-upload" class="custom-btns">choose json</label>
           </form>
-          <form
-            method="post"
-            enctype="multipart/form-data"
-            id="pcapFile"
-            name="pcapFile"
-          >
-            <input type="file" id="pcap-upload" name="pcap-up" hidden />
-            <label for="pcap-upload" class="custom-btns">choose pcap</label>
-          </form>
           <input
             type="button"
             id="summary-btn"
             value="Summary"
             class="custom-btns"
+            hidden
           />
 
-          <br /><br />
+          <br />
           <!-- Dropdown menus -->
           <select id="target_hosts" hidden>
             <option>ALL hosts</option>
@@ -71,7 +63,16 @@
         </div>
 
         <div id="main" class="main_panel">
-          Analysis output will appear here...
+          <table class="main_panel" id="packet_space">
+            <thead>
+              <tr>
+                <th>Packet Info</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          Choose a json decode using the button to the left.
         </div>
       </div>
 
@@ -83,45 +84,32 @@
       const contentTarget = document.getElementById("json-upload");
       let packets = {};
       let final_summary = "";
-      const form = document.getElementById("pcapFile");
-      const fileInput = document.getElementById("pcap-upload");
       const status = document.getElementById("status");
       let hosts = ["0.0.0.0"];
-
-      form.addEventListener("submit", function (event) {
-        event.preventDefault();
-        const files = fileInput.files;
-        if (files.length > 0) {
-          const file = files[0];
-          const formData = new FormData();
-          formData.append("myFile", file, file.name);
-          fetch("/upload-endpoint", {
-            method: "POST",
-            body: formData,
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              console.log("Success:", data);
-              status.textContent = "File successfully uploaded!";
-            })
-            .catch((error) => {
-              console.error("Error:", error);
-              status.textContent = "File upload failed!";
-            });
-        } else {
-          status.textContent = "Please select a file.";
-        }
-      });
-
       document
         .getElementById("json-upload")
         .addEventListener("change", function (event) {
           const file = event.target.files[0];
           if (file) {
             status.textContent = "Status: Selected file:" + file.name;
+            setTimeout(() => {
+              status.textContent = "Status: Ready";
+            }, 3000);
             processFile(file);
           }
         });
+
+      function build_table(h1, h2) {
+        const main_panel = document.getElementById("main");
+
+        main_panel.textContent = "";
+        main_panel.innerHTML =
+          '<table class="main_panel" id="packet_space"><thead><tr><th>' +
+          h1 +
+          "</th><th>" +
+          h2 +
+          "</th></tr></thead><tbody></tbody></table>";
+      }
 
       function processFile(file) {
         const reader = new FileReader();
@@ -132,9 +120,13 @@
           if (final_summary == undefined) {
             main_panel.textContent = "Error: Final Summary not found in JSON.";
             status.textContent = "Error: Final Summary is undefined.";
+            setTimeout(() => {
+              status.textContent = "Status: Ready";
+            }, 3000);
             return;
           }
           document.getElementById("target_hosts").hidden = false;
+          document.getElementById("summary-btn").hidden = false;
           for (const host in packets["Host"]) {
             if (!hosts.includes(host)) {
               hosts.push(host);
@@ -155,13 +147,37 @@
         reader.readAsText(file);
       }
 
+      function addRow(d1, d2) {
+        // Get the table element in which you want to add row
+        let ps = document.getElementById("packet_space");
+
+        // Create a row using the inserRow() method and
+        // specify the index where you want to add the row
+        let row = ps.insertRow(-1); // We are adding at the end
+
+        // Create table cells
+        let c1 = row.insertCell(0);
+        let c2 = row.insertCell(1);
+
+        // Add data to c1 and c2
+        c1.innerText = d1;
+        c2.innerText = d2;
+      }
+
       document
         .getElementById("target_hosts")
         .addEventListener("change", function () {
           const selected = document.getElementById("target_hosts").value;
+          const host_filter = document.getElementById("host_filter");
           const main_panel = document.getElementById("main");
-          main_panel.textContent = ""; // Clear previous content
-
+          build_table("Packet Info", "Details");
+          const packet_space = document.getElementById("packet_space");
+          if (host_filter.value !== selected) {
+            host_filter.value = selected;
+          }
+          if (selected === "ALL hosts") {
+            host_filter.value = "0.0.0.0";
+          }
           const hostPackets = packets["Host"][selected];
           for (const packet in hostPackets) {
             if (packet !== "Summary") {
@@ -173,9 +189,37 @@
                     if (info === "IP") {
                       const ipInfo = packetInfo[info];
                       for (const ipKey in ipInfo) {
-                        main_panel.textContent +=
-                          ipKey + ": " + ipInfo[ipKey] + "\n";
+                        addRow(ipKey, ipInfo[ipKey]);
+                        status.textContent =
+                          "Status: Displaying packet information for " +
+                          selected;
+                        setTimeout(() => {
+                          status.textContent = "Status: Ready";
+                        }, 3000);
                       }
+                    }
+                    if (info === "TCP") {
+                      const tcpInfo = packetInfo[info];
+                      if (tcpInfo["TCP Flag Data"]) {
+                        flags = tcpInfo["TCP Flag Data"]["Flags"];
+                        addRow("TCP Flags", "[ " + flags + " ]");
+                      }
+                      // iterate over the rest of hte keys in tcpInfo and add them to the table
+                      if (
+                        tcpInfo["Source port"] &&
+                        tcpInfo["Destination port"]
+                      ) {
+                        addRow("Source Port", tcpInfo["Source port"]);
+                        addRow("Destination Port", tcpInfo["Destination port"]);
+                        console.log(
+                          "Added TCP port information for " + selected,
+                        );
+                      }
+                      status.textContent =
+                        "Status: Displaying packet information for " + selected;
+                      setTimeout(() => {
+                        status.textContent = "Status: Ready";
+                      }, 3000);
                     }
                   }
                 }
