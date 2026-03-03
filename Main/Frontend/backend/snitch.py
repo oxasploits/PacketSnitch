@@ -41,8 +41,6 @@ nthreads = 6
 nllmthreads = 5
 threads = []
 pktnum = 0
-
-
 response_length = 100
 llm_model = "minimax-m2.5:cloud"
 use_llm = False
@@ -259,7 +257,10 @@ def write_testcase(data, output_dir, pdir, index):
     if verbose == 0:
         print(".", end="", flush=True)
     if not os.path.exists(output_dir + "/" + pdir):
-        os.mkdir(output_dir + "/" + pdir)
+        try:
+            os.mkdir(output_dir + "/" + pdir)
+        except Exception as e:
+            print("Error: Could not create minor dir: " + str(e), file=sys.stderr)
     out = open(
         output_dir + "/" + pdir + "/pcap.data_packet." + str(index) + ".dat", "wb"
     )
@@ -596,33 +597,27 @@ def parse_pcap(pcap_path, srcp, dstp, tmout, percentage_p, from_p, to_p, thread_
         if verbose == 0:
             print(".", end="", flush=True)
         packet_loop(p, from_p, pcap_path, percentage_p, srcp, dstp, tmout)
-        # for every 10 packets processed, add all 10 to a string to send to llm for batch analysis to generate insights on the traffic in the capture as a whole and add that analysis to the json of each packet in the batch
 
 
 summaries_batch = []
 
 
-def information_seive():
+def information_seive(sz):
+    batch_size = sz
     # loop over a batch of packets stored in all_info and for every batch_size packets send them to the llm for analysis, where their response will be added to summaries[] for later
-    batch_size = 5
-    q = ""
     for i in range(0, len(all_info), batch_size):
         if verbose == 0:
             print(".", end="", flush=True)
         if i + batch_size > len(all_info):
             batch = all_info[i:]
-            if use_llm:
-                # q = llm_query(json.dumps(batch)).get("Summary", "")
-                summaries_batch.append(batch)
+            summaries_batch.append(batch)
         else:
             batch = all_info[i : i + batch_size]
-            if use_llm:
-                # q = llm_query(json.dumps(batch)).get("Summary", "")
-                summaries_batch.append(batch)
+            summaries_batch.append(batch)
 
-        if verbose >= 2 and q:
+        if verbose >= 2 and batch:
             print(
-                f"\nLLM analysis for packets {i} to {i + batch_size}:\n{q}\n",
+                f"\nLLM analysis for batch {i} to {i + batch_size}\n",
                 file=sys.stderr,
             )
     for b in range(nllmthreads):
@@ -635,7 +630,8 @@ def information_seive():
         t.start()
     for t in threads:
         t.join()
-        print("Completed: " + t.name, file=sys.stderr)
+        if verbose >= 2:
+            print("Completed: " + t.name, file=sys.stderr)
 
 
 def start_threading():
@@ -667,29 +663,6 @@ def start_threading():
             t.start()
         for t in threads:
             t.join()
-        information_seive()
-        drilldown = " ".join(summaries) if summaries else "No LLM summaries generated."
-        if config.get("final_summary", True) and config["ollama"].get("use_llm", True):
-            try:
-                final_res = ollama.generate(
-                    model=llm_model,
-                    prompt="Provide a concise summary of the following packets, in paragraph form, limited to three paragraphs: "
-                    + drilldown[:100000],
-                )
-                if final_res and "response" in final_res:
-                    print(
-                        "\nFinal LLM Summary of Packet Analyses:\n"
-                        + final_res["response"]
-                    )
-                    final_summary = final_res["response"]
-                    open(outd + "/final_summary.txt", "w").write(final_summary)
-                    return final_summary
-                else:
-                    print(
-                        "\nLLM Final summary generation failed or returned no response."
-                    )
-            except Exception as e:
-                print("\nLLM Final summary generation error: " + str(e))
 
 
 # Argument parser setup for command-line options
@@ -852,6 +825,7 @@ if "ollama" in config and config["ollama"].get("model"):
         )
         llm_model = config["ollama"]["model"]
     response_length = config["ollama"].get("response_length", 200)
+    bs = config["ollama"].get("batch_size", 5)
     use_llm = config["ollama"].get("use_llm", False)
 else:
     llm_model = "minimax-m2.5:cloud"
@@ -908,6 +882,35 @@ else:
             final_s = start_threading()
             by_host(outd, final_s)
     finally:
+        information_seive(bs)
+        if verbose == 0:
+            print(".", end="", flush=True)
+        if config.get("final_summary", True) and config["ollama"].get("use_llm", True):
+            drilldown = (
+                " ".join(summaries) if summaries else "No LLM summaries generated."
+            )
+            try:
+                final_res = ollama.generate(
+                    model=llm_model,
+                    prompt="Provide a concise summary of the following packets, in paragraph form, limited to three paragraphs: "
+                    + drilldown[:200000],
+                )
+                if final_res and "response" in final_res:
+                    print(
+                        "\nFinal LLM Summary of Packet Analyses:\n"
+                        + final_res["response"]
+                    )
+                    final_summary = final_res["response"]
+                    open(outd + "/final_summary.txt", "w").write(final_summary)
+                    print("\n" + final_summary)
+                    print("\nFinal summary saved to: " + outd + "/final_summary.txt")
+                else:
+                    print(
+                        "\nLLM Final summary generation failed or returned no response."
+                    )
+            except Exception as e:
+                print("\nLLM Final summary generation error: " + str(e))
+
         print(
             "Processing complete. Generated testcases and info files are located in: "
             + outd,

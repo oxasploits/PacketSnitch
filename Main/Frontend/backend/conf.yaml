@@ -7,8 +7,9 @@ output_dir: "/tmp/testcases"
 ollama:
   use_llm: true
   model: "minimax-m2.5:cloud"
-#  model: "mistral-large-3:675b-cloud"
-  response_length: 250
+  #model: "mistral-large-3:675b-cloud"
+  response_length: 280
   server_call_threads: 6
+  batch_size: 7
 threads: 12
 final_summary: true
