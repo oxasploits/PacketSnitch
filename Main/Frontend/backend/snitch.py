@@ -3,30 +3,29 @@
 import argparse
 import csv
 import json
-import shutil
 import os
+import shutil
 import socket
 import ssl
 import sys
-import zlib
+import textwrap
+import threading
 import time
+import zlib
 from datetime import datetime
 from decimal import Decimal
-import textwrap
 import chardet
 import geoip2.database
 import magic
-import threading
 import numpy as np
-import requests
 import ollama
-from ollama import ResponseError
+import requests
 import yaml
 from bs4 import BeautifulSoup
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from ollama import ResponseError
+from requests.packages.urllib3.disable_warnings import InsecureRequestWarning
 from scipy.stats import entropy
-from tqdm import tqdm
-from threading import Thread
+import urllib3
 
 # Try importing scapy for packet parsing
 try:
@@ -45,39 +44,51 @@ response_length = 100
 llm_model = "minimax-m2.5:cloud"
 use_llm = False
 summaries = []
+llm_call_lock = threading.Semaphore(nllmthreads)  # Limit concurrent LLM calls
+# block with a Semaphore
+pprocess_lock = threading.Semaphore(nthreads)
 
 
 def llm_query(packet_infos):
-    if verbose == 0:
-        print(".", end="", flush=True)
-    try:
-        if ollama and use_llm and packet_infos:
-            # these are for retreies
-            for resc in range(3):
-                try:
-                    if verbose == 0:
-                        print(".", end="", flush=True)
-                    res = ollama.generate(
-                        model=llm_model,
-                        prompt=f"Tell me what you can about the following network capture (encoded in json, from pcap), its payload, and any interesting or unusual traits... respond with a single paragraph around {response_length} words: {packet_infos}",
-                    )
-                    if res and "response" in res:
+    with llm_call_lock:
+        if verbose == 0:
+            print(".", end="", flush=True)
+        try:
+            if ollama and use_llm and packet_infos:
+                # these are for retreies
+                for resc in range(3):
+                    try:
                         if verbose == 0:
                             print(".", end="", flush=True)
-                        summaries.append(res["response"])
-                    else:
-                        return {"Summary": ""}
-                except ResponseError as re:
-                    if verbose >= 2:
-                        print(
-                            f"LLM API response error (attempt {resc + 1}/3): {str(re)}",
-                            file=sys.stderr,
+                        res = ollama.generate(
+                            model=llm_model,
+                            prompt=f"Tell me what you can about the following network capture (encoded in json, from pcap), its payload, and any interesting or unusual traits... respond with a single paragraph around {response_length} words: {packet_infos}",
                         )
-                    time.sleep(2**resc)  # Exponential backoff
-        else:
-            return {"Summary": "LLM integration not enabled"}
-    except Exception as e:
-        return {"Summary": "LLM integration error: " + str(e)}
+                        if res and "response" in res:
+                            if verbose == 0:
+                                print(".", end="", flush=True)
+                            summaries.append(res["response"])
+                        else:
+                            return {"Summary": ""}
+                    except ResponseError as re:
+                        if verbose >= 2:
+                            print(
+                                f"LLM API response error (attempt {resc + 1}/3): {str(re)}",
+                                file=sys.stderr,
+                            )
+                        time.sleep(2**resc)  # Exponential backoff
+                        packet_infos = packet_infos[
+                            : int(len(packet_infos) / (2**resc))
+                        ]
+                        if verbose >= 1:
+                            print(
+                                f"Retrying with truncated (halved) string (attempt {resc + 1}/3)...",
+                                file=sys.stderr,
+                            )
+            else:
+                return {"Summary": "LLM integration not enabled"}
+        except Exception as e:
+            return {"Summary": "LLM integration error: " + str(e)}
 
 
 # Load YAML configuration file
@@ -271,7 +282,7 @@ all_info = []
 
 
 # Write packet info and extra info to JSON files
-def join_info(output_dir, pdir, index, dt_json, pkt_json, perp, host):
+def join_info(output_dir, pdir, index, dt_json, pkt_json, host):
     if verbose == 0:
         print(".", end="", flush=True)
     out = open(
@@ -422,7 +433,7 @@ def get_traits(data, dport, srcip, destip, timeout):
             "Error": "Active recon not performed",
             "Hostnames": [],
         }
-    if ar:
+    if ar and hostn.get("Hostnames"):
         banner = get_serv_banner(
             destip,
             dport,
@@ -480,10 +491,7 @@ def mac_addr_to_vendor(mac):
                     return row["Vendor Name"]
 
 
-def packet_loop(p, from_p, pcap_path, percentage_p, srcp, dstp, tmout):
-    total_pkts = len(scapy.rdpcap(pcap_path))  # type: ignore
-    per_pkts = int((percentage_p / 100) * total_pkts)
-    pp = int((percentage_p / 100) * per_pkts)
+def packet_loop(p, from_p, pcap_path, srcp, dstp, tmout):
     s = from_p
     mac_addr_src = p.src if p.haslayer("Ethernet") else "N/A"
     mac_addr_dst = p.dst if p.haslayer("Ethernet") else "N/A"
@@ -570,7 +578,6 @@ def packet_loop(p, from_p, pcap_path, percentage_p, srcp, dstp, tmout):
                     s,
                     json.dumps(dt_struct).encode(),
                     json.dumps(pkt_struct).encode(),
-                    pp,
                     p["IP"].dst
                     if get_geoip_info(p["IP"].dst).get("Location") != "Localnet"
                     else p["IP"].src,
@@ -580,23 +587,24 @@ def packet_loop(p, from_p, pcap_path, percentage_p, srcp, dstp, tmout):
 
 
 # Parse .pcap file and generate testcases and info files
-def parse_pcap(pcap_path, srcp, dstp, tmout, percentage_p, from_p, to_p, thread_id):
-    if verbose >= 2:
-        print(
-            "Starting thread "
-            + str(thread_id)
-            + " for packets "
-            + str(from_p)
-            + " to "
-            + str(to_p),
-            file=sys.stderr,
-        )
-        time.sleep(1)
-    packets = scapy.rdpcap(pcap_path)  # type: ignore
-    for p in packets[int(from_p) : int(to_p)]:
-        if verbose == 0:
-            print(".", end="", flush=True)
-        packet_loop(p, from_p, pcap_path, percentage_p, srcp, dstp, tmout)
+def parse_pcap(pcap_path, srcp, dstp, tmout, from_p, to_p, thread_id):
+    with pprocess_lock:
+        if verbose >= 2:
+            print(
+                "Starting thread "
+                + str(thread_id)
+                + " for packets "
+                + str(from_p)
+                + " to "
+                + str(to_p),
+                file=sys.stderr,
+            )
+            time.sleep(1)
+        packets = scapy.rdpcap(pcap_path)  # type: ignore
+        for p in packets[int(from_p) : int(to_p)]:
+            if verbose == 0:
+                print(".", end="", flush=True)
+            packet_loop(p, from_p, pcap_path, srcp, dstp, tmout)
 
 
 summaries_batch = []
@@ -609,18 +617,18 @@ def information_seive(sz):
         if verbose == 0:
             print(".", end="", flush=True)
         if i + batch_size > len(all_info):
-            batch = all_info[i:]
+            batch = ",".join(json.dumps(all_info[i:]))
             summaries_batch.append(batch)
         else:
-            batch = all_info[i : i + batch_size]
+            batch = ",".join(json.dumps(all_info[i : i + batch_size]))
             summaries_batch.append(batch)
 
         if verbose >= 2 and batch:
             print(
-                f"\nLLM analysis for batch {i} to {i + batch_size}\n",
+                f"LLM analysis for batch {i} to {i + batch_size}",
                 file=sys.stderr,
             )
-    for b in range(nllmthreads):
+    for b in range(len(summaries_batch)):
         t = threading.Thread(
             target=llm_query,
             args=(json.dumps(summaries_batch[b]),),
@@ -636,7 +644,6 @@ def information_seive(sz):
 
 def start_threading():
     if __name__ == "__main__":
-        pcap_percentage = 100
         print(
             "Spooling up " + str(nthreads) + " threads to process packets...",
             file=sys.stderr,
@@ -652,7 +659,6 @@ def start_threading():
                     args.source_port,
                     args.dest_port,
                     args.timeout,
-                    pcap_percentage,
                     start,
                     end,
                     c,
@@ -794,6 +800,7 @@ packets = scapy.rdpcap(args.pcap_file)  # type: ignore
 # Use len() to get the total number of packets in the file
 total_packets = len(packets)
 # To count specifically TCP packets using a filter function:
+bs = 0
 totalp = len([p for p in packets if p.haslayer("TCP")])
 if totalp == 0:
     print("No packets found matching the specified port filters.", file=sys.stderr)
