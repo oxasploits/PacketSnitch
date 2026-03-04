@@ -6,10 +6,10 @@ database_locations:
 output_dir: "/tmp/testcases"
 ollama:
   use_llm: true
-  model: "minimax-m2.5:cloud"
-  #model: "mistral-large-3:675b-cloud"
-  response_length: 320
-  server_call_threads: 4
-  batch_size: 4
+  #model: "minimax-m2.5:cloud"
+  model: "mistral-large-3:675b-cloud"
+  response_length: 340
+  server_call_threads: 5
+  batch_size: 5
 threads: 12
 final_summary: true

@@ -1,4 +1,28 @@
-# oxagast
+## snitch.py: Analyze pcap network captures, extract TCP packet data, and gather extra information.
+#
+# This script processes .pcap files, extracting TCP packet payloads and metadata, and generates
+# testcases and info files for each packet. It enriches the output with MIME types, entropy,
+# geoip, network class, banners, and more. Optionally, it performs active reconnaissance to
+# gather additional network and server information. Summaries and final reports can be generated
+# using a large language model (LLM).
+#
+# Features:
+#   - Extracts TCP packet data and metadata from .pcap files.
+#   - Writes raw payloads and info files to output directories.
+#   - Determines MIME types, entropy, geoip, network class, banners, and more.
+#   - Optionally performs active reconnaissance (reverse DNS, banners, SSL info, etc.).
+#   - Supports multi-threaded processing for large captures.
+#   - Summarizes results using LLM integration (Ollama).
+#   - Outputs consolidated JSON and summary files.
+#
+# Usage:
+#   python3 snitch.py <pcap_file> [options]
+#   See command-line argument parser below for available options.
+#
+# Dependencies:
+#   - scapy, numpy, requests, chardet, geoip2, magic, yaml, ollama, bs4, scipy, etc.
+#
+# Author: oxagast oxagast
 # Import standard and third-party libraries for argument parsing, file handling, networking, compression, and data processing
 import argparse
 import csv
@@ -23,19 +47,14 @@ import requests
 import yaml
 from bs4 import BeautifulSoup
 from ollama import ResponseError
-from requests.packages.urllib3.disable_warnings import InsecureRequestWarning
 from scipy.stats import entropy
-import urllib3
 
-# Try importing scapy for packet parsing
 try:
     import scapy.all as scapy
 except ImportError:
     import scapy
 
-# Global variables for caching and configuration
 ar = "False"
-percentage_pcap = 10
 nthreads = 6
 nllmthreads = 5
 threads = []
@@ -45,18 +64,21 @@ llm_model = "minimax-m2.5:cloud"
 use_llm = False
 summaries = []
 llm_call_lock = threading.Semaphore(nllmthreads)  # Limit concurrent LLM calls
-# block with a Semaphore
 pprocess_lock = threading.Semaphore(nthreads)
 
 
 def llm_query(packet_infos):
+    """
+    Query a large language model (LLM) with packet information for summarization.
+    Handles retries and concurrency limits. Appends responses to the global summaries list.
+    """
     with llm_call_lock:
         if verbose == 0:
             print(".", end="", flush=True)
         try:
             if ollama and use_llm and packet_infos:
                 # these are for retreies
-                for resc in range(3):
+                for resc in range(2):
                     try:
                         if verbose == 0:
                             print(".", end="", flush=True)
@@ -91,8 +113,11 @@ def llm_query(packet_infos):
             return {"Summary": "LLM integration error: " + str(e)}
 
 
-# Load YAML configuration file
 def config_loader(filename="conf.yaml"):
+    """
+    Load YAML configuration from the specified file.
+    Exits if the file does not exist.
+    """
     if not os.path.exists(filename):
         print("Error: Configuration file not found!", file=sys.stderr)
         sys.exit(1)
@@ -100,8 +125,11 @@ def config_loader(filename="conf.yaml"):
         return yaml.safe_load(f)
 
 
-# Lookup port description from ICANN CSV database
 def get_port_description(port, protocol="tcp"):
+    """
+    Look up the description of a port and protocol from the ICANN CSV database.
+    Returns a string description or an error message.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     if not os.path.exists(icann_csv_path):
@@ -125,8 +153,11 @@ def get_port_description(port, protocol="tcp"):
                     continue
 
 
-# Perform reverse DNS lookup for an IP address
 def reverse_dns_lookup(ip):
+    """
+    Perform a reverse DNS lookup for the given IP address.
+    Returns a dictionary with resolution status and hostnames or error.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     try:
@@ -146,8 +177,12 @@ def reverse_dns_lookup(ip):
 checked_ips = []
 
 
-# Fetch server banner and SSL certificate information for a given IP and port
 def get_serv_banner(ip, port, t, hostname):
+    """
+    Retrieve the service banner, SSL certificate, and page title for a given IP and port.
+    Uses cache to avoid redundant lookups. Handles both HTTP and HTTPS.
+    Returns a dictionary with banner, page title, and encryption data.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     socket_cert = "Unavailable"
@@ -248,8 +283,11 @@ def get_serv_banner(ip, port, t, hostname):
         return nobdat
 
 
-# Fetch the page title from a URL
 def get_page_title(url, t):
+    """
+    Fetch the HTML page title from the given URL with a timeout.
+    Returns the title string or "N/A" if unavailable.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     try:
@@ -263,8 +301,11 @@ def get_page_title(url, t):
         return "N/A"
 
 
-# Write raw packet data to a testcase file
 def write_testcase(data, output_dir, pdir, index):
+    """
+    Write raw packet data to a testcase file in the specified output directory.
+    Creates the directory if it does not exist.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     if not os.path.exists(output_dir + "/" + pdir):
@@ -281,8 +322,11 @@ def write_testcase(data, output_dir, pdir, index):
 all_info = []
 
 
-# Write packet info and extra info to JSON files
 def join_info(output_dir, pdir, index, dt_json, pkt_json, host):
+    """
+    Merge and write packet info and extra info as a JSON file.
+    Appends the merged info to the global all_info list.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     out = open(
@@ -304,6 +348,9 @@ by_host_dict = {}
 
 
 def by_host(out, final_summary):
+    """
+    Organize all_info packets by host and write to a summary JSON file.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     for host in all_info:
@@ -316,8 +363,10 @@ def by_host(out, final_summary):
     )
 
 
-# Determine IP network class (A/B/C/D/E)
 def get_netclass(ip):
+    """
+    Determine the network class (A, B, C, or Unknown) of an IPv4 address.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     fo = int(ip.split(".")[0])
@@ -331,24 +380,30 @@ def get_netclass(ip):
         return "Unknown (D/E)?"
 
 
-# Safely decompress data using zlib/gzip
 def safe_decompress(compressed_data):
+    """
+    Safely decompress gzip or zlib-compressed data.
+    Returns the decompressed bytes, or empty bytes on error.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     # Initialize decompressor
     # Handle gzip and zlib formats
-    dco = zlib.decompressobj(wbits=zlib.MAX_WBITS | 16)
+    dcomper = zlib.decompressobj(wbits=zlib.MAX_WBITS | 16)
     result = b""
     try:
-        result = dco.decompress(compressed_data)
-        result += dco.flush()
+        result = dcomper.decompress(compressed_data)
+        result += dcomper.flush()
     except zlib.error as e:
         pass
     return result
 
 
-# Get GeoIP information for an IP address
 def get_geoip_info(ip):
+    """
+    Look up GeoIP information (country, city, postal code, timezone) for an IP address.
+    Returns a dictionary with location data or error message.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     if not os.path.exists(geodat_path):
@@ -368,19 +423,22 @@ def get_geoip_info(ip):
         return {"Location": "Error: " + str(e)}
 
 
-# Analyze packet data for MIME type, decompression, and traits
 def get_datatypes(data, dport, srcip, destip, tmout):
+    """
+    Analyze data to determine MIME type, decompress if possible, and extract traits.
+    Returns a dictionary with MIME type, decompression info, data types, and traits.
+    """
     mime_type = magic.from_buffer(data, mime=True)
     descs = []
     dedata = ""
-    compressedd = {"Decompressed": False}
+    decom = {"Decompressed": False}
     for ln in data.splitlines():
         if verbose == 0:
             print(".", end="", flush=True)
         descs.append(magic.from_buffer(ln))
         dedata = safe_decompress(ln)
         if dedata and len(dedata) > 0:
-            compressedd = {
+            decom = {
                 "Decompressed data": {
                     "Decompressed Hex Encoded": dedata.hex(),
                     "Decompressed ASCII Encoded": dedata.decode(errors="ignore"),
@@ -396,15 +454,17 @@ def get_datatypes(data, dport, srcip, destip, tmout):
     trait_struct = get_traits(data, dport, srcip, destip, tmout)
     dt = {
         "MIME Type": mime_type,
-        "Decompressed": compressedd,
+        "Decompressed": decom,
         "Data Types": udescs,
         "Traits": trait_struct,
     }
     return dt
 
 
-# Get service name for a port using socket library
 def get_serv(port, protocol="tcp"):
+    """
+    Return the service name for a given port and protocol using the system's services database.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     try:
@@ -414,8 +474,11 @@ def get_serv(port, protocol="tcp"):
         return "Unknown"
 
 
-# Extract traits from packet data (entropy, network info, banners, charset, etc.)
 def get_traits(data, dport, srcip, destip, timeout):
+    """
+    Analyze data for entropy, charset, encoding, and network/server traits.
+    Returns a dictionary with entropy, network data, length, server info, and character info.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     counts = np.bincount(list(data))
@@ -433,7 +496,7 @@ def get_traits(data, dport, srcip, destip, timeout):
             "Error": "Active recon not performed",
             "Hostnames": [],
         }
-    if ar and hostn.get("Hostnames"):
+    if ar and hostn.get("Hostnames") is not None:
         banner = get_serv_banner(
             destip,
             dport,
@@ -476,8 +539,11 @@ def get_traits(data, dport, srcip, destip, timeout):
     }
 
 
-# Lookup MAC address vendor from CSV database
 def mac_addr_to_vendor(mac):
+    """
+    Look up the vendor name for a MAC address using the MAC vendor CSV database.
+    Returns the vendor name or an error message.
+    """
     if verbose == 0:
         print(".", end="", flush=True)
     if not os.path.exists(mac_vendors_path):
@@ -492,6 +558,10 @@ def mac_addr_to_vendor(mac):
 
 
 def packet_loop(p, from_p, pcap_path, srcp, dstp, tmout):
+    """
+    Process a single packet: extract TCP payload, write testcase, gather info, and merge results.
+    Returns merged info for the processed packet.
+    """
     s = from_p
     mac_addr_src = p.src if p.haslayer("Ethernet") else "N/A"
     mac_addr_dst = p.dst if p.haslayer("Ethernet") else "N/A"
@@ -532,7 +602,6 @@ def packet_loop(p, from_p, pcap_path, srcp, dstp, tmout):
                     flag_data += "CWR|"
                 if flag_data.endswith("|"):
                     flag_data = flag_data[:-1]
-
                 pkt_struct = {
                     "Packet Processed": int(s),
                     "Packet Timestamp": timestamp,
@@ -586,8 +655,11 @@ def packet_loop(p, from_p, pcap_path, srcp, dstp, tmout):
                 return data_back
 
 
-# Parse .pcap file and generate testcases and info files
 def parse_pcap(pcap_path, srcp, dstp, tmout, from_p, to_p, thread_id):
+    """
+    Parse a pcap file and process packets in the specified range.
+    Used as the target for packet processing threads.
+    """
     with pprocess_lock:
         if verbose >= 2:
             print(
@@ -599,7 +671,6 @@ def parse_pcap(pcap_path, srcp, dstp, tmout, from_p, to_p, thread_id):
                 + str(to_p),
                 file=sys.stderr,
             )
-            time.sleep(1)
         packets = scapy.rdpcap(pcap_path)  # type: ignore
         for p in packets[int(from_p) : int(to_p)]:
             if verbose == 0:
@@ -610,39 +681,45 @@ def parse_pcap(pcap_path, srcp, dstp, tmout, from_p, to_p, thread_id):
 summaries_batch = []
 
 
-def information_seive(sz):
-    batch_size = sz
+def information_seive(batch_size):
+    """
+    Batch all_info packets and send them to the LLM for analysis.
+    Stores LLM responses in the summaries list for later use.
+    """
     # loop over a batch of packets stored in all_info and for every batch_size packets send them to the llm for analysis, where their response will be added to summaries[] for later
-    for i in range(0, len(all_info), batch_size):
+    for pak in range(0, len(all_info), batch_size):
         if verbose == 0:
             print(".", end="", flush=True)
-        if i + batch_size > len(all_info):
-            batch = ",".join(json.dumps(all_info[i:]))
-            summaries_batch.append(batch)
-        else:
-            batch = ",".join(json.dumps(all_info[i : i + batch_size]))
-            summaries_batch.append(batch)
-
+        batch = ",".join(json.dumps(all_info[pak : pak + batch_size]))
+        for backoff in range(batch_size):
+            batch = ",".join(json.dumps(all_info[pak : pak + batch_size - backoff]))
+            if len(batch) > 200000 and backoff == batch_size - 1:
+                batch = batch[:200000]
+        summaries_batch.append(batch)
         if verbose >= 2 and batch:
             print(
-                f"LLM analysis for batch {i} to {i + batch_size}",
+                f"LLM analysis for batch {pak} to {pak + batch_size}",
                 file=sys.stderr,
             )
     for b in range(len(summaries_batch)):
-        t = threading.Thread(
+        r = threading.Thread(
             target=llm_query,
             args=(json.dumps(summaries_batch[b]),),
             name="LLM Analysis Thread " + str(b),
         )
-        threads.append(t)
-        t.start()
-    for t in threads:
-        t.join()
+        threads.append(r)
+        r.start()
+    for r in threads:
+        r.join()
         if verbose >= 2:
-            print("Completed: " + t.name, file=sys.stderr)
+            print("Completed: " + r.name, file=sys.stderr)
 
 
 def start_threading():
+    """
+    Start multiple threads to process packets in parallel.
+    Divides the total packets among the configured number of threads.
+    """
     if __name__ == "__main__":
         print(
             "Spooling up " + str(nthreads) + " threads to process packets...",
@@ -671,7 +748,6 @@ def start_threading():
             t.join()
 
 
-# Argument parser setup for command-line options
 parser = argparse.ArgumentParser(
     prog="snitch.py",
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -683,7 +759,6 @@ writes testcases, and gathers extra information such as MIME types, entropy, geo
 network class, banners, and more. Optionally, it performs active reconnaissance
 to enrich the output with additional network and server information.  A full capture
 summary is generated using a large languuage model to provide insights into the data.
-
         Outputs:
           - Testcase files: output_dir/<dest_port>/pcap.data_packet.<index>.dat
           - Testcase info: output_dir/<dest_port>/pcap.info_packet.<index>.json
@@ -740,7 +815,6 @@ parser.add_argument(
 verbose = parser.parse_args().verbose
 args = parser.parse_args()
 config = config_loader(args.conf if args.conf else "conf.yaml")
-# Load database paths from config and print status
 if config["database_locations"]["geoip"]:
     geodat_path = config["database_locations"]["geoip"]
     if verbose >= 1:
@@ -796,10 +870,7 @@ else:
         )
 totalp = 0
 packets = scapy.rdpcap(args.pcap_file)  # type: ignore
-# The PacketList object provides a summary of included protocols
-# Use len() to get the total number of packets in the file
 total_packets = len(packets)
-# To count specifically TCP packets using a filter function:
 bs = 0
 totalp = len([p for p in packets if p.haslayer("TCP")])
 if totalp == 0:
@@ -814,7 +885,6 @@ if args.output and args.output != "testcases":
 if "output_dir" in config:
     outd = config["output_dir"]
     print("Using output directory from config: " + outd, file=sys.stderr)
-# Set active recon flag from config if not provided as argument
 if not args.active_recon:
     if config["active_recon"]:
         ar = config["active_recon"]
@@ -823,11 +893,7 @@ if not args.active_recon:
 if "ollama" in config and config["ollama"].get("model"):
     if config["ollama"].get("use_llm", False) and verbose >= 1:
         print(
-            "LLM integration enabled. Using model: "
-            + config["ollama"]["model"]
-            + ". LLM analysis will be included for every "
-            + str(config["ollama"].get("pcap_percentage", 10))
-            + "% of packets.",
+            "LLM integration enabled. Using model: " + config["ollama"]["model"] + ".",
             file=sys.stderr,
         )
         llm_model = config["ollama"]["model"]
@@ -843,7 +909,7 @@ if llm_model and use_llm:
         if verbose >= 2:
             print(
                 "Using cloud-based LLM model: "
-                + llm_model
+                + "minimax-m2.5:cloud"  # doesn't need to be that fast, but has to look decent
                 + ". Ensure you have network connectivity and API access.",
                 file=sys.stderr,
             )
@@ -855,7 +921,6 @@ print(
     + " threads.",
     file=sys.stderr,
 )
-# Main execution logic: check files, handle output directory, and run parsing
 if not os.path.exists(args.pcap_file):
     print("The .pcap file does not exist.", file=sys.stderr)
     sys.exit(1)
@@ -917,7 +982,6 @@ else:
                     )
             except Exception as e:
                 print("\nLLM Final summary generation error: " + str(e))
-
         print(
             "Processing complete. Generated testcases and info files are located in: "
             + outd,
