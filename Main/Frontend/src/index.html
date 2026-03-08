@@ -1,3 +1,4 @@
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -21,9 +22,8 @@
       http-equiv="Content-Security-Policy"
        content="default-src 'unsafe-inline' http://localhost:*; script-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src-elem 'https://fonts.googleapis.com'; style-src 'self' https://fonts.googleapis.com http://localhost:*"
     /> -->
-    <!--
-    <link rel="stylesheet" href="/assets/css/style.css" type="text/css" />
--->
+
+    <link rel="stylesheet" href="assets/css/style.css" type="text/css" />
   </head>
 
   <body>
@@ -47,7 +47,27 @@
         <label style="color: white">ip/hostname:</label>
         <input id="host_filter" type="text" placeholder="0.0.0.0" disabled />
       </div>
-
+      <div class="menu_bar">
+        <input
+          type="button"
+          id="summary-btn"
+          value="Analysis"
+          class="custom-btns"
+        />
+        <input
+          type="button"
+          id="data-btn"
+          value="Host Data"
+          class="custom-btns"
+        />
+        <input type="button" id="tools-btn" value="Tools" class="custom-btns" />
+        <input
+          type="button"
+          id="bookmarks-btn"
+          value="Bookmarks"
+          class="custom-btns"
+        />
+      </div>
       <div class="content_area">
         <div class="sidebar">
           <form
@@ -59,14 +79,6 @@
             <input type="file" id="json-upload" name="json-up" hidden />
             <label for="json-upload" class="custom-btns">choose json</label>
           </form>
-          <input
-            hidden
-            type="button"
-            id="summary-btn"
-            value="Summary"
-            class="custom-btns"
-          />
-
           <br />
           <!-- Dropdown menus -->
           <select id="target_hosts" hidden>
@@ -85,8 +97,10 @@
             <h2>Welcome to PacketSnitch!</h2>
             <br />
           </div>
-          Choose a json decode using the button to the left, then select an IP
-          to inspect.
+          <div id="main_content" class="main_panel">
+            Choose a json decode using the button to the left, then select an IP
+            to inspect.
+          </div>
         </div>
       </div>
 
@@ -95,8 +109,7 @@
       <div class="footer">oxasploits, llc (&copy; 2026)</div>
     </div>
     <br />
-    <!--
-    <script src="/assets/scripts/scripts.js"></script>
-      -->
+
+    <script src="assets/scripts/scripts.js"></script>
   </body>
 </html>

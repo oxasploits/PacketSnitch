@@ -4,6 +4,7 @@ let json_cap = "";
 let final_summary = "";
 const status = document.getElementById("status");
 let hosts = ["0.0.0.0"];
+let host_filter = document.getElementById("host_filter");
 document
   .getElementById("json-upload")
   .addEventListener("change", function (event) {
@@ -17,15 +18,12 @@ document
     }
   });
 
-function output_frame(h1, h2) {
+function writePacketInfo(h1, h2) {
   const format_selection = document.getElementById("Format").value;
   if (format_selection === "Tables") {
     const main_panel = document.getElementById("main");
     main_panel.textContent = "";
     main_panel.innerHTML =
-      "<h2>Capture Analysis:</h2>" +
-      final_summary +
-      "<br><br><hr><br>" +
       '<div><table class="main_panel" id="packet_space"><thead><tr><th width=25%>' +
       h1 +
       "</th><th>" +
@@ -34,14 +32,10 @@ function output_frame(h1, h2) {
   }
   if (format_selection === "Pretty JSON") {
     main_panel.textContent = "";
-    main_panel.innerHTML =
-      "<h2>Capture Analysis:</h2>" +
-      final_summary +
-      '<br><br><hr><br><pre id="json_output">' +
-      json_cap +
-      "</pre>";
+    main_panel.innerHTML = '<br><pre id="json_output">' + json_cap + "</pre>";
   }
 }
+
 function processFile(file) {
   const reader = new FileReader();
   reader.onload = (event) => {
@@ -225,14 +219,14 @@ function hostPacketInfo(ip) {
 
 document.getElementById("target_hosts").addEventListener("change", function () {
   const selected = document.getElementById("target_hosts").value;
-  const host_filter = document.getElementById("host_filter");
+  let host_filter = document.getElementById("host_filter");
   const main_panel = document.getElementById("main");
   const packet_space = document.getElementById("packet_space");
   if (host_filter.value !== selected) {
     host_filter.value = selected;
   }
 
-  output_frame("Packet Info", "Details");
+  writePacketInfo("Packet Info", "Details");
   if (selected === "ALL hosts") {
     host_filter.value = "0.0.0.0";
     for (const ip in packets["Host"]) {
@@ -245,7 +239,14 @@ document.getElementById("target_hosts").addEventListener("change", function () {
 
 document.getElementById("summary-btn").addEventListener("click", function () {
   document.getElementById("main").innerHTML =
-    "<h2>Capture Analysis:</h2>" + final_summary + "<br><hr>";
+    "<strong>Capture Analysis:</strong><br><br>" + final_summary + "<br>";
+});
+
+document.getElementById("data-btn").addEventListener("click", function () {
+  writePacketInfo("Packet Info", "Details");
+  //let pakinfo = hostPacketInfo(document.getElementById("host_filter").value);
+  //writePacketInfo("Packet Info", "Details");
+  hostPacketInfo(document.getElementById("host_filter").value);
 });
 
 // Example function to run the binary
