@@ -10,10 +10,7 @@ document
   .addEventListener("change", function (event) {
     const file = event.target.files[0];
     if (file) {
-      status.textContent = "Status: Selected file:" + file.name;
-      setTimeout(() => {
-        status.textContent = "Status: Ready";
-      }, 3000);
+      statusUpdate("Processing file: " + file.name);
       processFile(file);
     }
   });
@@ -45,10 +42,7 @@ function processFile(file) {
     final_summary = packets["Final Summary"];
     if (final_summary == undefined) {
       main_panel.textContent = "Error: Final Summary not found in JSON.";
-      status.textContent = "Error: Final Summary is undefined.";
-      setTimeout(() => {
-        status.textContent = "Status: Ready";
-      }, 3000);
+      statusUpdate("Status: Error: Final Summary not found in JSON.");
       return;
     }
     document.getElementById("target_hosts").hidden = false;
@@ -71,6 +65,13 @@ function processFile(file) {
   };
 
   reader.readAsText(file);
+}
+
+function statusUpdate(message) {
+  status.textContent = message;
+  setTimeout(() => {
+    status.textContent = "Status: Ready";
+  }, 3000);
 }
 
 function addRow(d1, d2) {
@@ -100,11 +101,7 @@ function hostPacketInfo(ip) {
               const ipInfo = packetInfo[info];
               for (const ipKey in ipInfo) {
                 addRow(ipKey, ipInfo[ipKey]);
-                status.textContent =
-                  "Status: Displaying packet information for " + selected;
-                setTimeout(() => {
-                  status.textContent = "Status: Ready";
-                }, 3000);
+                statusUpdate("Status: Added IP information for " + selected);
               }
             }
 
@@ -136,11 +133,9 @@ function hostPacketInfo(ip) {
 
                   addRow(ethKey, ethInfo[ethKey]);
                 }
-                status.textContent =
-                  "Status: Displaying packet information for " + selected;
-                setTimeout(() => {
-                  status.textContent = "Status: Ready";
-                }, 3000);
+                statusUpdate(
+                  "Status: Added Ethernet Frame information for " + selected,
+                );
                 if (info === "Raw Data") {
                   // interate over the next data and add it to the table
                 }
@@ -160,20 +155,14 @@ function hostPacketInfo(ip) {
                 addRow("TCP Checksum", tcpInfo["TCP checksum"]);
                 console.log("Added TCP port information for " + selected);
               }
-              status.textContent =
-                "Status: Displaying packet information for " + selected;
-              setTimeout(() => {
-                status.textContent = "Status: Ready";
-              }, 3000);
+              statusUpdate("Status: Added TCP information for " + selected);
             }
             if (info === "Raw data") {
               const rawData = packetInfo[info];
               addRow("Raw Data", rawData["Payload"]["Hex Encoded"]);
-              status.textContent =
-                "Status: Displaying packet information for " + selected;
-              setTimeout(() => {
-                status.textContent = "Status: Ready";
-              }, 3000);
+              statusUpdate(
+                "Status: Added Raw Data information for " + selected,
+              );
             }
           }
         }
@@ -238,11 +227,15 @@ document.getElementById("target_hosts").addEventListener("change", function () {
 });
 
 document.getElementById("summary-btn").addEventListener("click", function () {
+  statusUpdate("Status: Displaying capture analysis summary");
   document.getElementById("main").innerHTML =
     "<strong>Capture Analysis:</strong><br><br>" + final_summary + "<br>";
 });
 
 document.getElementById("data-btn").addEventListener("click", function () {
+  statusUpdate(
+    "Status: Displaying packet information for " + host_filter.value,
+  );
   writePacketInfo("Packet Info", "Details");
   //let pakinfo = hostPacketInfo(document.getElementById("host_filter").value);
   //writePacketInfo("Packet Info", "Details");

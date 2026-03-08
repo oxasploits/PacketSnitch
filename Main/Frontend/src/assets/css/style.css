@@ -30,6 +30,7 @@ body {
   box-sizing: border-box;
   background-color: black;
   font-color: var(--color-5);
+  scrollbar-color: var(--color-4) var(--color-1);
 }
 
 /* Top title bar */
@@ -111,6 +112,7 @@ hr {
   height: 97%;
   font-family: Cantarell, system-ui;
   font-size: 12px;
+  overflow-y: hidden;
 }
 
 #main_content {
@@ -179,6 +181,14 @@ td {
 
 table {
   width: 85%;
+}
+
+td {
+  color: white;
+}
+
+strong {
+  color: var(--color-1);
 }
 
 .menu_bar {
