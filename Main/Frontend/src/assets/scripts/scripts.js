@@ -6,6 +6,9 @@ let final_summary = "";
 const status = document.getElementById("status");
 let hosts = ["0.0.0.0"];
 let host_filter = document.getElementById("host_filter");
+let currentPacketIndex = 0;
+let packetsForHost = [];
+let index = 0;
 
 /* if a json is loaded this gets our code ready */
 document
@@ -93,127 +96,17 @@ function addRow(d1, d2) {
 function hostPacketInfo(ip) {
   const selected = ip;
   packetsForHost = [];
-  //const host_filter = document.getElementById("host_filter");
-  //const main_panel = document.getElementById("main");
-  //const packet_space = document.getElementById("packet_space");
   const hostPackets = packets["Host"][selected];
   for (const packet in hostPackets) {
     if (packet !== "Summary") {
       const packetData = hostPackets[packet];
-      packetsForHost.push(packetData);
+
       for (const key in packetData) {
-        if (key === "Packet Info") {
-          const packetInfo = packetData[key];
-          for (const info in packetInfo) {
-            if (info === "IP") {
-              const ipInfo = packetInfo[info];
-              for (const ipKey in ipInfo) {
-                addRow(ipKey, ipInfo[ipKey]);
-                statusUpdate("Status: Added IP information for " + selected);
-              }
-            }
-            // everything for the therent frame goes here
-            if (info === "Ethernet Frame") {
-              const ethInfo = packetInfo[info];
-              for (const ethKey in ethInfo) {
-                if (
-                  "Localnet" !=
-                    packetData["Extra Info"]["Traits"]["Network Data"][
-                      "Source IP"
-                    ]["Location"]["Location"] &&
-                  "Localnet" !=
-                    packetData["Extra Info"]["Traits"]["Network Data"][
-                      "Destination IP"
-                    ]["Location"]["Location"]
-                ) {
-                  addRow(
-                    "Source Location",
-                    packetData["Extra Info"]["Traits"]["Network Data"][
-                      "Source IP"
-                    ]["Location"]["Location"],
-                  );
-
-                  addRow(
-                    "Dest Location",
-                    packetData["Extra Info"]["Traits"]["Network Data"][
-                      "Destination IP"
-                    ]["Location"]["Location"],
-                  );
-
-                  addRow(ethKey, ethInfo[ethKey]);
-                }
-                statusUpdate(
-                  "Status: Added Ethernet Frame information for " + selected,
-                );
-                if (info === "Raw Data") {
-                  // interate over the next data and add it to the table
-                }
-              }
-            }
-            if (info === "TCP") {
-              const tcpInfo = packetInfo[info];
-              if (tcpInfo["TCP Flag Data"]) {
-                flags = tcpInfo["TCP Flag Data"]["Flags"];
-                addRow("TCP Flags", flags);
-              }
-              // iterate over the rest of hte keys in tcpInfo and add them to the table
-              if (tcpInfo["Source port"] && tcpInfo["Destination port"]) {
-                addRow("Source Port", tcpInfo["Source port"]);
-                addRow("Destination Port", tcpInfo["Destination port"]);
-                addRow("Urgent flag", tcpInfo["Urgent flag"]);
-                addRow("TCP Checksum", tcpInfo["TCP checksum"]);
-                console.log("Added TCP port information for " + selected);
-              }
-              statusUpdate("Status: Added TCP information for " + selected);
-            }
-            if (info === "Raw data") {
-              const rawData = packetInfo[info];
-              addRow("Raw Data", rawData["Payload"]["Hex Encoded"]);
-              statusUpdate(
-                "Status: Added Raw Data information for " + selected,
-              );
-            }
-          }
-        }
-        if (key === "Extra Info") {
-          const extraInfo = packetData[key];
-          for (const extraKey in extraInfo) {
-            if (extraKey === "Data Types") {
-              const dtypes = extraInfo[extraKey];
-              for (const type in dtypes) {
-                addRow("Possible data type: " + type, dtypes[type]);
-              }
-            }
-            if (extraKey === "Traits") {
-              const traits = extraInfo[extraKey];
-              if (traits["Network Data"]) {
-                addRow(
-                  "Source IP Location",
-                  traits["Network Data"]["Source IP"]["Location"]["Location"],
-                );
-                addRow(
-                  "Destination IP Location",
-                  traits["Network Data"]["Destination IP"]["Location"][
-                    "Location"
-                  ],
-                );
-              }
-              for (const trait in traits) {
-                if (trait !== "Network Data" && trait !== "Server Info") {
-                  addRow(trait, traits[trait]);
-                }
-                if (traits[trait]["Port Description"] !== undefined) {
-                  addRow("Protocol", traits[trait]["Port Description"]);
-                }
-              }
-            }
-          }
-        }
+        packetInfo = packetData;
+        packetsForHost.push(packetInfo["Packet Info"]);
       }
     }
-    addRow("NEXT PACKET", "******");
   }
-  return packetsForHost;
 }
 
 /* if another host is selected we call this function */
@@ -225,18 +118,6 @@ document.getElementById("target_hosts").addEventListener("change", function () {
   packet_info = [];
   if (host_filter.value !== selected) {
     host_filter.value = selected;
-  }
-
-  writePacketInfo("Packet Info", "Details");
-  if (selected === "ALL hosts") {
-    host_filter.value = "0.0.0.0";
-    for (const ip in packets["Host"]) {
-      packet_info = hostPacketInfo(ip);
-    }
-  } else {
-    packet_info = hostPacketInfo(selected);
-    //    packet_dump = JSON.stringify(packet_info[3], null, 2);
-    //    console.log(packet_dump);
   }
 });
 
@@ -252,6 +133,7 @@ function highlightTab(tabId) {
 }
 
 /* this runs when the analysis button is clicked */
+
 document.getElementById("summary-btn").addEventListener("click", function () {
   statusUpdate("Status: Displaying capture analysis summary");
   highlightTab("summary-btn");
@@ -259,23 +141,167 @@ document.getElementById("summary-btn").addEventListener("click", function () {
     "<strong>Capture Analysis:</strong><br><br>" + final_summary + "<br>";
 });
 
+//     if (key === "Packet Info") {
+//       const packetInfo = packetData[key];
+//       for (const info in packetInfo) {
+//         if (info === "IP") {
+//           const ipInfo = packetInfo[info];
+//           for (const ipKey in ipInfo) {
+//             addRow(ipKey, ipInfo[ipKey]);
+//             statusUpdate("Status: Added IP information for " + selected);
+//           }
+//         }
+//         // everything for the therent frame goes here
+//         if (info === "Ethernet Frame") {
+//           const ethInfo = packetInfo[info];
+//           for (const ethKey in ethInfo) {
+//             if (
+//               "Localnet" !=
+//                 packetData["Extra Info"]["Traits"]["Network Data"][
+//                   "Source IP"
+//                 ]["Location"]["Location"] &&
+//               "Localnet" !=
+//                 packetData["Extra Info"]["Traits"]["Network Data"][
+//                   "Destination IP"
+//                 ]["Location"]["Location"]
+//             ) {
+//               addRow(
+//                 "Source Location",
+//                 packetData["Extra Info"]["Traits"]["Network Data"][
+//                   "Source IP"
+//                 ]["Location"]["Location"],
+//               );
+//
+//               addRow(
+//                 "Dest Location",
+//                 packetData["Extra Info"]["Traits"]["Network Data"][
+//                   "Destination IP"
+//                 ]["Location"]["Location"],
+//               );
+//
+//               addRow(ethKey, ethInfo[ethKey]);
+//             }
+//             statusUpdate(
+//               "Status: Added Ethernet Frame information for " + selected,
+//             );
+//             if (info === "Raw Data") {
+//               // interate over the next data and add it to the table
+//             }
+//           }
+//         }
+//         if (info === "TCP") {
+//           const tcpInfo = packetInfo[info];
+//           if (tcpInfo["TCP Flag Data"]) {
+//             flags = tcpInfo["TCP Flag Data"]["Flags"];
+//             addRow("TCP Flags", flags);
+//           }
+//           // iterate over the rest of hte keys in tcpInfo and add them to the table
+//           if (tcpInfo["Source port"] && tcpInfo["Destination port"]) {
+//             addRow("Source Port", tcpInfo["Source port"]);
+//             addRow("Destination Port", tcpInfo["Destination port"]);
+//             addRow("Urgent flag", tcpInfo["Urgent flag"]);
+//             addRow("TCP Checksum", tcpInfo["TCP checksum"]);
+//             console.log("Added TCP port information for " + selected);
+//           }
+//           statusUpdate("Status: Added TCP information for " + selected);
+//         }
+//         if (info === "Raw data") {
+//           const rawData = packetInfo[info];
+//           addRow("Raw Data", rawData["Payload"]["Hex Encoded"]);
+//           statusUpdate(
+//             "Status: Added Raw Data information for " + selected,
+//           );
+//         }
+//       }
+//     }
+//     if (key === "Extra Info") {
+//       const extraInfo = packetData[key];
+//       for (const extraKey in extraInfo) {
+//         if (extraKey === "Data Types") {
+//           const dtypes = extraInfo[extraKey];
+//           for (const type in dtypes) {
+//             addRow("Possible data type: " + type, dtypes[type]);
+//           }
+//         }
+//         if (extraKey === "Traits") {
+//           const traits = extraInfo[extraKey];
+//           if (traits["Network Data"]) {
+//             addRow(
+//               "Source IP Location",
+//               traits["Network Data"]["Source IP"]["Location"]["Location"],
+//             );
+//             addRow(
+//               "Destination IP Location",
+//               traits["Network Data"]["Destination IP"]["Location"][
+//                 "Location"
+//               ],
+//             );
+//           }
+//           for (const trait in traits) {
+//             if (trait !== "Network Data" && trait !== "Server Info") {
+//               addRow(trait, traits[trait]);
+//             }
+//             if (traits[trait]["Port Description"] !== undefined) {
+//               addRow("Protocol", traits[trait]["Port Description"]);
+//             }
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
+//addRow("NEXT PACKET", "******");
+
 /* this runs when the host data button is clicked */
 document.getElementById("data-btn").addEventListener("click", function () {
   highlightTab("data-btn");
   statusUpdate(
     "Status: Displaying packet information for " + host_filter.value,
   );
-  writePacketInfo("Packet Info", "Details");
-  //let pakinfo = hostPacketInfo(document.getElementById("host_filter").value);
-  //writePacketInfo("Packet Info", "Details");
-  hostPacketInfo(document.getElementById("host_filter").value);
+  document.getElementById("prev-btn").style.display = "block";
+  document.getElementById("next-btn").style.display = "block";
+  hostPacketInfo(host_filter.value);
+  handlePacketNavigation(null);
+});
+//let pakinfo = hostPacketInfo(document.getElementById("host_filter").value);
+//writePacketInfo("Packet Info", "Details");
+
+document.getElementById("prev-btn").addEventListener("click", function () {
+  statusUpdate("Status: Displaying capture analysis summary");
+  highlightTab("prev-btn");
+  hostPacketInfo(host_filter.value);
+  handlePacketNavigation("prev-btn");
 });
 
-/* this runs when the tools data button is clicked */
-document.getElementById("tools-btn").addEventListener("click", function () {
-  highlightTab("tools-btn");
-  statusUpdate("Status: Addressing tools... " + host_filter.value);
+document.getElementById("next-btn").addEventListener("click", function () {
+  statusUpdate("Status: Displaying capture analysis summary");
+  highlightTab("next-btn");
+  hostPacketInfo(host_filter.value);
+  handlePacketNavigation("next-btn");
 });
+
+function handlePacketNavigation(btn) {
+  if (index >= 1 && btn === "prev-btn") {
+    index = index - 1;
+    document.getElementById("main").innerHTML = JSON.stringify(
+      packetsForHost[index],
+      null,
+      2,
+    );
+  } else {
+    statusUpdate("Status: No more packets in this direction");
+  }
+  if (index <= packetsForHost.length + 1 && btn === "next-btn") {
+    index = index + 1;
+    document.getElementById("main").innerHTML = JSON.stringify(
+      packetsForHost[index],
+      null,
+      2,
+    );
+  } else {
+    statusUpdate("Status: No more packets in this direction");
+  }
+}
 
 /* this runs when the bookmarks data button is clicked */
 document.getElementById("bookmarks-btn").addEventListener("click", function () {

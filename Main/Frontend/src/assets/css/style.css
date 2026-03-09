@@ -60,6 +60,12 @@ body {
   font-style: normal;
 }
 */
+#prev-btn {
+  display: none;
+}
+#next-btn {
+  display: none;
+}
 
 #psbyline {
   width: 150px;
