@@ -31,6 +31,7 @@ body {
   background-color: black;
   font-color: var(--color-5);
   scrollbar-color: var(--color-4) var(--color-1);
+  height: 98%;
 }
 
 /* Top title bar */
@@ -110,20 +111,21 @@ hr {
 
 /* Content area */
 .content_area {
-  flex: 1;
-  display: flex;
+  flex: 3;
   margin-top: 5px;
+  display: flex;
   margin-right: 5px;
-  overflow-y: scroll;
   height: 97%;
   font-family: Cantarell, system-ui;
   font-size: 12px;
   overflow-y: hidden;
+  height: 90%;
 }
 
 #main_content {
   font-face: Cantarell, system-ui;
   color: var(--color-1);
+  height: 90%;
 }
 
 /* Sidebar */
@@ -137,6 +139,7 @@ hr {
   margin-right: 1px;
   padding-top: 2px;
   margin-left: 6px;
+  height: 90%;
 }
 
 .sidebar select {
@@ -163,7 +166,6 @@ hr {
   color: white;
   padding: 5px;
   box-sizing: border-box;
-  overflow-y: auto;
   font-family: word-break, monospace;
   align-items: center;
   width: 90%;
@@ -263,19 +265,17 @@ strong {
   color: white;
   text-align: center;
   font-size: small;
-  position: relative;
   justify-content: flex-end;
-  bottom: -4px;
 }
 
 .bmdrop {
   background-color: var(--color-2);
   border: 1px solid var(--color-4);
   padding: 5px;
-  display: none;
   position: absolute;
   left: 741px;
   top: 165px;
+  height: 30px;
 }
 
 .welcome_message {
@@ -291,4 +291,8 @@ strong {
   height: 100%;
   object-fit: cover; /* or 'contain' */
   margin-top: 9px;
+}
+
+#foot {
+  position: absolute;
 }

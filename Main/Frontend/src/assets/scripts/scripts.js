@@ -295,7 +295,6 @@ document.getElementById("bkmrk-btn").addEventListener("click", function () {
   // select from a list previous bookmarks.
 
   dropdown = document.getElementById("selPacket");
-  dropdown.style.display = "block";
   //  dropdown.style.display = "block";
   dropdown.addEventListener("click", function (event) {
     const isClickedInside = dropdown.contains(event.target);
@@ -305,11 +304,8 @@ document.getElementById("bkmrk-btn").addEventListener("click", function () {
         .addEventListener("click", function () {
           bookmark["host"] = host_filter.value;
           bookmark["packet"] = index;
-          dropdown.style.display = "none";
           handlePacketNavigation("bkmrk-btn", bookmark);
         });
-    } else {
-      dropdown.style.display = "none";
     }
     //  });
   });
@@ -338,11 +334,9 @@ function handlePacketNavigation(btn, bookmark) {
           null,
           2,
         );
-        dropdown.style.display = "none";
       });
   } else {
     hostPacketInfo(document.getElementById("host_filter").value);
-    dropdown.style.display = "none";
   }
 
   if (btn === "first-load") {
