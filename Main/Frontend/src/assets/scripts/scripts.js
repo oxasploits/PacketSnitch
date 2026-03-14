@@ -119,15 +119,26 @@ function highlightTab(tabId) {
 /* this runs when the analysis button is clicked */
 
 document.getElementById("summary-btn").addEventListener("click", function () {
+  writeSummary();
+});
+
+function writeSummary() {
   statusUpdate("Status: Displaying capture analysis summary");
   highlightTab("summary-btn");
   if (json_cap == "") {
     statusUpdate("Status: No JSON file loaded, please upload a file first");
   } else {
-    document.getElementById("main").innerHTML =
-      "<strong>Capture Analysis:</strong><br><br>" + final_summary + "<br>";
+    container = document.getElementById("main");
+    sbp = document.createElement("div");
+    sbp.setAttribute("id", "summary_box");
+    container.appendChild(sbp);
+    document.getElementById("packetInfoPane").style.display = "none";
+    document.getElementById("packetPayloadPane").style.display = "none";
+    document.getElementById("summary_box").style.display = "block";
+    sbp.innerHTML = final_summary;
+    final_summary = "";
   }
-});
+}
 
 /* this runs when the host data button is clicked */
 document.getElementById("data-btn").addEventListener("click", function () {
@@ -183,6 +194,12 @@ document.getElementById("setBookmark").addEventListener("click", function () {
 });
 
 function handlePacketNavigation(btn, bookmark) {
+  document.getElementById("packetInfoPane").style.display = "block";
+  document.getElementById("packetPayloadPane").style.display = "block";
+  document.getElementById("summary_box").style.display = "none";
+  if (btn === undefined) {
+    handlePacketNavigation("first-load");
+  }
   packetsForHost = packets["Host"][host_filter.value];
   if (btn === "bookmark") {
     index = bookmark["Packet"];
@@ -241,9 +258,19 @@ function pophexgrid(hex) {
 
 function infoPanel() {
   p = JSON.parse(JSON.stringify(packetsForHost[index]));
-  ts = p["Packet Info"]["Packet Timestamp"];
-  document.getElementById("packetInfoPane").innerHTML =
-    "<strong>Packet Timestamp:</strong><br><br>" + ts + "<br>";
+  pinfo = p["Packet Info"];
+  ts = pinfo["Packet Timestamp"];
+  ipchksum = pinfo["IP"]["IP Checksum"];
+  tcpchksum = pinfo["TCP"]["TCP checksum"];
+  infoPane = document.getElementById("packetInfoPane");
+  infoPane.innerHTML = "<strong>Packet Timestamp:</strong>" + ts + "<br>";
+  infoPane.innerHTML += "<strong>Checksums</strong><br>";
+  infoPane.innerHTML +=
+    "<strong>IP </strong>" +
+    ipchksum +
+    "<strong> | TCP </strong>" +
+    tcpchksum +
+    "<br>";
 }
 
 function runMyBinary() {
@@ -260,8 +287,6 @@ function runMyBinary() {
   });
 }
 
-// Call this function when needed, e.g., after the app is ready
-app.on("ready", () => {
-  // ... create window ...
-  runMyBinary();
-});
+onload = function () {
+  writeSummary();
+};

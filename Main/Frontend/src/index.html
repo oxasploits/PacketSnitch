@@ -8,20 +8,7 @@
     <!-- Google Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <!--
-    <link
-      href="https://fonts.googleapis.com/css2?family=Rubik+Glitch&display=swap"
-      rel="stylesheet"
-      type="font/woff2"
-    />
-
--->
-
-    <!--   <meta
-      http-equiv="Content-Security-Policy"
-       content="default-src 'unsafe-inline' http://localhost:*; script-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src-elem 'https://fonts.googleapis.com'; style-src 'self' https://fonts.googleapis.com http://localhost:*"
-    /> -->
+    >
 
     <link rel="stylesheet" href="assets/css/style.css" type="text/css" />
   </head>
@@ -37,7 +24,6 @@
           />
         </div>
       </div>
-
       <div class="entry_bar">
         <div class="logo-cont">
           <img
@@ -64,14 +50,6 @@
           value="Host Data"
           class="custom-btns"
         />
-        <!--        <input type="button" id="tools-btn" value="Tools" class="custom-btns" />
-        <input
-          type="button"
-          id="bkmrk-btn"
-          value="Bookmarks"
-          class="custom-btns"
-        />
--->
         <input type="button" id="prev-btn" value="Prev" class="custom-btns" />
         <input type="button" id="next-btn" value="Next" class="custom-btns" />
       </div>
@@ -84,7 +62,7 @@
             name="jsonFile"
           >
             <input type="file" id="json-upload" name="json-up" hidden />
-            <label for="json-upload" class="custom-btns">choose json</label>
+            <label for="json-upload" class="custom-btns">Choose JSON</label>
           </form>
           <br />
           <!-- Dropdown menus -->
@@ -103,23 +81,25 @@
             <option value="" disabled selected>Select a bookmark</option>
           </select>
         </div>
-
         <div id="main" class="main_panel">
           <div id="packetInfoPane" class="main_panel">
-            Packet Timestamp
+            <strong
+              ><br />
+              &nbsp;&nbsp;Please load a JSON file!
+            </strong>
           </div>
-          <div id="packetPayloadPane" class="main_panel"><br>
-          <div id="hexg" class="hexGrid">
-             
+          <div id="packetPayloadPane" class="main_panel">
+            <br />
+            <div id="hexg" class="hexGrid"></div>
           </div>
-            </div>
         </div>
         <div class="sidebar"></div>
-
-    <div class="footer">
-      <div id="status" class="footer">Status: Ready</div>
-      <div id="copyright" class="footer">oxasploits, llc (&copy; 2026)</div>
-      <script src="assets/scripts/scripts.js"></script>
+      </div>
+      <div class="footer">
+        <div id="status" class="footer">Status: Ready</div>
+        <div id="copyright" class="footer">oxasploits, llc (&copy; 2026)</div>
+        <script src="assets/scripts/scripts.js"></script>
+      </div>
     </div>
   </body>
 </html>

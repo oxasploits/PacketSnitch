@@ -171,7 +171,6 @@ hr {
   align-items: center;
   width: 90%;
   justify-items: center;
-  text-align: justify;
 }
 
 table,
@@ -255,6 +254,15 @@ strong {
   font-size: small;
   position: relative;
   width: 98%;
+}
+
+#summary_box {
+  display: block;
+  border: 8px solid var(--color-3);
+  background-color: var(--color-4);
+  height: 87%;
+  padding: 5px;
+  width: 103%;
 }
 
 #copyright {
