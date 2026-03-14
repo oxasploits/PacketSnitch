@@ -258,21 +258,58 @@ function pophexgrid(hex) {
   }
 }
 
+function createTable(data, headers, containerId) {
+  const table = document.createElement("table");
+
+  const headerRow = document.createElement("tr");
+  headers.forEach((text) => {
+    const th = document.createElement("th");
+    th.textContent = text;
+    headerRow.appendChild(th);
+  });
+  table.appendChild(headerRow);
+
+  data.forEach((item) => {
+    const row = document.createElement("tr");
+    Object.values(item).forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      row.appendChild(td);
+    });
+    table.appendChild(row);
+  });
+
+  document.getElementById(containerId).appendChild(table);
+}
+
 function infoPanel() {
   p = JSON.parse(JSON.stringify(packetsForHost[index]));
   pinfo = p["Packet Info"];
   ts = pinfo["Packet Timestamp"];
   ipchksum = pinfo["IP"]["IP Checksum"];
   tcpchksum = pinfo["TCP"]["TCP checksum"];
+  sourcepair = pinfo["IP"]["Source IP"] + ":" + pinfo["TCP"]["Source port"];
+  destpair =
+    pinfo["IP"]["Destination IP"] + ":" + pinfo["TCP"]["Destination port"];
+  macsrc = pinfo["Ethernet Frame"]["MAC Source"];
+  macdest = pinfo["Ethernet Frame"]["MAC Destination"];
+  macsrcvendor = pinfo["Ethernet Frame"]["MAC Source Vendor"];
+  macdestvendor = pinfo["Ethernet Frame"]["MAC Destination Vendor"];
+  flags = pinfo["TCP"]["TCP Flag Data"]["Flags"];
+  iplayrelen = pinfo["IP"]["IP layer length"];
+  tcplayrelen = pinfo["TCP"]["TCP layer length"];
+  wirelen = pinfo["TCP"]["Wire length"];
+  payloadlen = pinfo["Raw data"]["Payload Length"];
   infoPane = document.getElementById("packetInfoPane");
-  infoPane.innerHTML = "<strong>Packet Timestamp:</strong>" + ts + "<br>";
-  infoPane.innerHTML += "<strong>Checksums</strong><br>";
-  infoPane.innerHTML +=
-    "<strong>IP </strong>" +
-    ipchksum +
-    "<strong> | TCP </strong>" +
-    tcpchksum +
-    "<br>";
+  infoPane.textContent = "";
+  const data = [
+    { name: "IP", value: ipchksum },
+    { name: "TCP", value: tcpchksum },
+  ];
+
+  const headers = ["Type", "Checksum"];
+
+  createTable(data, headers, "packetInfoPane");
 }
 
 function runMyBinary() {
