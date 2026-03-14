@@ -166,12 +166,9 @@ document
     index = document.getElementById("selectBookmark").value.split(":")[1];
     host_filter.value = host;
     packetsForHost = packets["Host"][host];
-
-    document.getElementById("main").innerHTML = JSON.stringify(
-      packetsForHost[index],
-      null,
-      2,
-    );
+    bookmark["Host"] = host;
+    bookmark["Packet"] = index;
+    handlePacketNavigation("bookmark", bookmark);
   });
 
 document.getElementById("setBookmark").addEventListener("click", function () {
@@ -186,6 +183,11 @@ document.getElementById("setBookmark").addEventListener("click", function () {
 
 function handlePacketNavigation(btn, bookmark) {
   packetsForHost = packets["Host"][host_filter.value];
+  if (btn === "bookmark") {
+    index = bookmark["Packet"];
+    document.getElementById("host_filter").value = bookmark["Host"];
+  }
+
   if (btn === "first-load") {
     index = 0;
     "Status: Displaying packet 1 of " + packetsForHost.length;
@@ -217,11 +219,18 @@ function handlePacketNavigation(btn, bookmark) {
    packetsForHost[index] is an array of all packet info 
    for the current host, we want to be able to navigate
    through it with next and prev buttons */
-  document.getElementById("main").innerHTML = JSON.stringify(
-    packetsForHost[index],
-    null,
-    2,
-  );
+  //  document.getElementById("packetPayloadPane").innerHTML = JSON.stringify(
+  //    packetsForHost[index],
+  //   null,
+  //   2,
+  // );
+  ip = document.getElementById("host_filter").value;
+  packetDecoded = JSON.parse(JSON.stringify(packetsForHost[index]));
+  hexPayload =
+    packetDecoded["Packet Info"]["Raw data"]["Payload"]["Hex Encoded"];
+  document.getElementById("packetPayloadPane").innerHTML = hexPayload
+    .replace(/(.{1,2})/g, "$1 ")
+    .trim();
 }
 
 // Example function to run the binary
