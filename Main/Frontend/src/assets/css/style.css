@@ -270,6 +270,10 @@ strong {
   border: 8px solid var(--color-3);
 }
 
+#checksumPane {
+  width: 80px;
+}
+
 #packetPayloadPane {
   width: 103.7%;
   overflow: scroll;

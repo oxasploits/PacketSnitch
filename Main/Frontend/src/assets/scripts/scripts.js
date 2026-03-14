@@ -283,6 +283,10 @@ function createTable(data, headers, containerId) {
 }
 
 function infoPanel() {
+  document.getElementById("summary_box").style.display = "none";
+  infoPane = document.getElementById("packetInfoPane");
+  infoPaneOrig = infoPane.innerHTML;
+  infoPane.style.display = "block";
   p = JSON.parse(JSON.stringify(packetsForHost[index]));
   pinfo = p["Packet Info"];
   ts = pinfo["Packet Timestamp"];
@@ -300,18 +304,17 @@ function infoPanel() {
   tcplayrelen = pinfo["TCP"]["TCP layer length"];
   wirelen = pinfo["TCP"]["Wire length"];
   payloadlen = pinfo["Raw data"]["Payload Length"];
-  infoPane = document.getElementById("packetInfoPane");
-  infoPane.textContent = "";
+  document.getElementById("checksums").textContent = "";
   const data = [
     { name: "IP", value: ipchksum },
     { name: "TCP", value: tcpchksum },
   ];
 
-  const headers = ["Type", "Checksum"];
+  const headers = ["Type", "Checksums"];
+  createTable(data, headers, "checksums");
 
-  createTable(data, headers, "packetInfoPane");
+  document.getElementById("timestamp").textContent = "Timestamp: " + ts;
 }
-
 function runMyBinary() {
   // Be sure to make the path absolute
   const command = `"${path.resolve(binaryPath)}"`;
@@ -325,7 +328,6 @@ function runMyBinary() {
     console.error(`stderr: ${stderr}`);
   });
 }
-
 onload = function () {
   writeSummary();
 };
