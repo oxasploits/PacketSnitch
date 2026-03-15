@@ -65,6 +65,7 @@ use_llm = False
 summaries = []
 llm_call_lock = threading.Semaphore(nllmthreads)  # Limit concurrent LLM calls
 pprocess_lock = threading.Semaphore(nthreads)
+script_dir = os.path.dirname(os.path.realpath(__file__)) + "/"
 
 
 def llm_query(packet_infos):
@@ -752,6 +753,7 @@ def start_threading():
             t.join()
 
 
+print(script_dir)
 parser = argparse.ArgumentParser(
     prog="snitch.py",
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -819,59 +821,9 @@ parser.add_argument(
 verbose = parser.parse_args().verbose
 args = parser.parse_args()
 config = config_loader(args.conf if args.conf else "conf.yaml")
-if config["database_locations"]["geoip"]:
-    geodat_path = config["database_locations"]["geoip"]
-    if verbose >= 1:
-        if os.path.exists(geodat_path):
-            print("Using GeoIP Database found at: " + geodat_path, file=sys.stderr)
-        else:
-            print(
-                "Error: GeoIP database file not found at specified location!",
-                file=sys.stderr,
-            )
-else:
-    if verbose >= 1:
-        print(
-            "Error: GeoIP database location not specified in config!", file=sys.stderr
-        )
-if config["database_locations"]["mac_vendors"]:
-    mac_vendors_path = config["database_locations"]["mac_vendors"]
-    if verbose >= 1:
-        if os.path.exists(mac_vendors_path):
-            print(
-                "Using MAC Vendor Database found at: " + mac_vendors_path,
-                file=sys.stderr,
-            )
-        else:
-            print(
-                "Error: MAC vendor database file not found at specified location!",
-                file=sys.stderr,
-            )
-else:
-    if verbose >= 1:
-        print(
-            "Error: MAC vendor database location not specified in config!",
-            file=sys.stderr,
-        )
-if config["database_locations"]["icann_ports"]:
-    icann_csv_path = config["database_locations"]["icann_ports"]
-    if verbose >= 1:
-        if os.path.exists(icann_csv_path):
-            print(
-                "Using ICANN Port Description Database found at: " + icann_csv_path,
-                file=sys.stderr,
-            )
-        else:
-            print(
-                "Error: ICANN port description database file not found at specified location!",
-                file=sys.stderr,
-            )
-else:
-    if verbose >= 1:
-        print(
-            "Error: ICANN port description database location not specified in config!",
-            file=sys.stderr,
-        )
+geodat_path = script_dir + "common/GeoLite2-City.mmdb"
+mac_vendors_path = script_dir + "common/mac-vendors-export.csv"
+icann_csv_path = script_dir + "common/service-names-port-numbers.csv"
 totalp = 0
 packets = scapy.rdpcap(args.pcap_file)  # type: ignore
 total_packets = len(packets)

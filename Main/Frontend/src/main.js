@@ -1,7 +1,34 @@
 const { app, BrowserWindow } = require("electron");
-const path = require("node:path");
+//const path = require("node:path");
 
 const CopyPlugin = require("copy-webpack-plugin");
+
+const { ipcMain } = require("electron");
+const { exec } = require("child_process");
+const path = require("path");
+ipcMain.on("run-command", (event) => {
+  let binaryPath;
+  if (process.env.NODE_ENV === "development") {
+    binaryPath = path.join(__dirname, "..", "backend", "backend/snitch");
+  } else {
+    binaryPath = path.join(
+      process.resourcesPath,
+      "backend",
+      "/usr/lib/packetsnitch/resources/backend/snitch",
+    );
+  }
+
+  exec(binaryPath, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error executing command: ${error.message}`);
+      event.reply("command-result", `Error: ${error.message}`);
+      return;
+    }
+    console.log(`Command output: ${stdout}`);
+    console.error(`Command error output: ${stderr}`);
+    event.reply("command-result", stdout || stderr);
+  });
+});
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
