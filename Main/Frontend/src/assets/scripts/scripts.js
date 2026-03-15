@@ -11,7 +11,7 @@ let packetsForHost = []; // Packets for the currently selected host
 let index = 0; // Navigation index for packets
 let bookmarkList = []; // List of bookmarks (host:packet index)
 let bookmark = {}; // Current bookmark object
-
+let firstRun = true; // Flag for first run to initialize hex grid
 // Initialize hex grid with empty data (256 bytes of zero)
 pophexgrid("00".repeat(256));
 
@@ -131,12 +131,15 @@ function highlightTab(tabId) {
 
 // Show summary when summary button is clicked
 document.getElementById("summary-btn").addEventListener("click", function () {
+  document.getElementById("welcome").style.display = "The Analysis:";
+  document.getElementById("welcome").style.display = "block";
   writeSummary();
 });
 
 /**
  * Displays the summary section from the loaded JSON.
  */
+
 function writeSummary() {
   statusUpdate("Status: Displaying capture analysis summary");
   highlightTab("summary-btn");
@@ -151,9 +154,19 @@ function writeSummary() {
     }
     document.getElementById("packetInfoPane").style.display = "none";
     document.getElementById("packetPayloadPane").style.display = "none";
-    document.getElementById("summary_box").style.display = "block";
+    document.getElementById("summary_box").style.display = "none";
     sbp.innerHTML = final_summary;
     final_summary = "";
+    if (firstRun) {
+      document.getElementById("welcome").innerHTML = "Now Select a packet!";
+      firstRun = false;
+      setTimeout(() => {
+        document.getElementById("summary_box").style.display = "block";
+        document.getElementById("welcome").innerHTML = "The Analysis:";
+      }, 8000);
+    } else {
+      document.getElementById("summary_box").style.display = "block";
+    }
   }
 }
 
@@ -168,7 +181,12 @@ document.getElementById("data-btn").addEventListener("click", function () {
   } else {
     document.getElementById("prev-btn").style.display = "block";
     document.getElementById("next-btn").style.display = "block";
+    document.getElementById("welcome").style.display = "none";
     //hostPacketInfostPacketInfo(host_filter.value);
+    if (document.getElementById("host_filter").value == "") {
+      document.getElementById("host_filter").value = hosts[1];
+    }
+
     handlePacketNavigation("first-load");
   }
 });

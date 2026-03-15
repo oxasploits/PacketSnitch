@@ -36,6 +36,14 @@ body {
   z-index: 1;
 }
 
+#welcome {
+  margin-top: 20px;
+  margin-left: 40px;
+  width: 100%;
+  justify-content: left;
+  font-size: 22px;
+  color: var(--color-1);
+}
 /* Top title bar */
 .top_bar {
   height: 40px;
