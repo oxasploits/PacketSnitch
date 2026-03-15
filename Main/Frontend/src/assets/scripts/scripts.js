@@ -1,19 +1,21 @@
-/* some global vars to make things easier on us */
-const contentTarget = document.getElementById("json-upload");
-let packets = {};
-let json_cap = "";
-let final_summary = "";
-const status = document.getElementById("status");
-let hosts = ["0.0.0.0"];
-let host_filter = document.getElementById("host_filter");
-let currentPacketIndex = 0;
-let packetsForHost = [];
-let index = 0;
-let bookmarkList = [];
+// Global variables for DOM elements and state
+const contentTarget = document.getElementById("json-upload"); // File input for JSON upload
+let packets = {}; // Stores parsed packet data from JSON
+let json_cap = ""; // Stringified JSON capture for pretty display
+let final_summary = ""; // Stores the summary section from JSON
+const status = document.getElementById("status"); // Status bar element
+let hosts = ["0.0.0.0"]; // List of hosts found in capture
+let host_filter = document.getElementById("host_filter"); // Host filter dropdown
+let currentPacketIndex = 0; // Index of currently displayed packet
+let packetsForHost = []; // Packets for the currently selected host
+let index = 0; // Navigation index for packets
+let bookmarkList = []; // List of bookmarks (host:packet index)
+let bookmark = {}; // Current bookmark object
 
-let bookmark = {};
-/* if a json is loaded this gets our code ready */
+// Initialize hex grid with empty data (256 bytes of zero)
 pophexgrid("00".repeat(256));
+
+// Set up file upload handler for JSON capture
 document
   .getElementById("json-upload")
   .addEventListener("change", function (event) {
@@ -24,7 +26,10 @@ document
     }
   });
 
-/* this bilds the table if json output is selected */
+/**
+ * Display packet info in either table or pretty JSON format,
+ * depending on user selection.
+ */
 function writePacketInfo(h1, h2) {
   const format_selection = document.getElementById("Format").value;
   if (format_selection === "Tables") {
@@ -43,7 +48,9 @@ function writePacketInfo(h1, h2) {
   }
 }
 
-/* processing the json comes from this */
+/**
+ * Reads and parses the uploaded JSON file, updates UI and state.
+ */
 function processFile(file) {
   const reader = new FileReader();
   reader.onload = (event) => {
@@ -58,6 +65,7 @@ function processFile(file) {
     }
     document.getElementById("target_hosts").hidden = false;
     document.getElementById("summary-btn").style.display = "block";
+    // Populate host dropdown with hosts from JSON
     for (const host in packets["Host"]) {
       if (!hosts.includes(host)) {
         hosts.push(host);
@@ -66,18 +74,19 @@ function processFile(file) {
         newhost.textContent = host;
         newhost.value = host;
         targets_list.appendChild(newhost);
+        writeSummary();
       }
     }
   };
-
   reader.onerror = (error) => {
     status.textContent = "Status: Error reading file: " + error;
   };
-
   reader.readAsText(file);
 }
 
-/* updates to status bar come from here */
+/**
+ * Updates the status bar with a message, then resets after 6 seconds.
+ */
 function statusUpdate(message) {
   status.textContent = message;
   setTimeout(() => {
@@ -85,7 +94,9 @@ function statusUpdate(message) {
   }, 6000);
 }
 
-/* this generates the table under the host data tab */
+/**
+ * Loads all packets for a given host IP into packetsForHost.
+ */
 function hostPacketInfo(ip) {
   const selected = ip;
   packetsForHost = [];
@@ -95,7 +106,7 @@ function hostPacketInfo(ip) {
   }
 }
 
-/* if another host is selected we call this function */
+// Update host filter when a new host is selected from dropdown
 document.getElementById("target_hosts").addEventListener("change", function () {
   const selected = document.getElementById("target_hosts").value;
   let host_filter = document.getElementById("host_filter");
@@ -105,7 +116,9 @@ document.getElementById("target_hosts").addEventListener("change", function () {
   }
 });
 
-/* this changes the color of the tab slightly */
+/**
+ * Highlights the selected tab by changing its background color.
+ */
 function highlightTab(tabId) {
   const containerDiv = document.getElementById("tab-btns");
   const allTabs = containerDiv.querySelectorAll("*");
@@ -116,12 +129,14 @@ function highlightTab(tabId) {
   tab.style.backgroundColor = "#00294a";
 }
 
-/* this runs when the analysis button is clicked */
-
+// Show summary when summary button is clicked
 document.getElementById("summary-btn").addEventListener("click", function () {
   writeSummary();
 });
 
+/**
+ * Displays the summary section from the loaded JSON.
+ */
 function writeSummary() {
   statusUpdate("Status: Displaying capture analysis summary");
   highlightTab("summary-btn");
@@ -142,7 +157,7 @@ function writeSummary() {
   }
 }
 
-/* this runs when the host data button is clicked */
+// Show host data when data button is clicked
 document.getElementById("data-btn").addEventListener("click", function () {
   highlightTab("data-btn");
   statusUpdate(
@@ -157,15 +172,16 @@ document.getElementById("data-btn").addEventListener("click", function () {
     handlePacketNavigation("first-load");
   }
 });
-//let pakinfo = hostPacketInfo(document.getElementById("host_filter").value);
-//writePacketInfo("Packet Info", "Details");
 
+// Navigation for previous packet
 document.getElementById("prev-btn").addEventListener("click", function () {
   statusUpdate("Status: Displaying capture analysis summary");
   highlightTab("prev-btn");
   //hostPacketInfo(host_filter.value);
   handlePacketNavigation("prev-btn");
 });
+
+// Navigation for next packet
 document.getElementById("next-btn").addEventListener("click", function () {
   statusUpdate("Status: Displaying capture analysis summary");
   highlightTab("next-btn");
@@ -173,6 +189,7 @@ document.getElementById("next-btn").addEventListener("click", function () {
   handlePacketNavigation("next-btn");
 });
 
+// Handle bookmark selection from dropdown
 document
   .getElementById("selectBookmark")
   .addEventListener("change", function () {
@@ -185,6 +202,7 @@ document
     handlePacketNavigation("bookmark", bookmark);
   });
 
+// Add current packet as a bookmark
 document.getElementById("setBookmark").addEventListener("click", function () {
   curPacket = document.getElementById("host_filter").value + ":" + index;
   if (!bookmarkList.includes(curPacket)) {
@@ -195,6 +213,10 @@ document.getElementById("setBookmark").addEventListener("click", function () {
   }
 });
 
+/**
+ * Handles navigation between packets (next, prev, bookmark, first-load).
+ * Updates UI and packet info accordingly.
+ */
 function handlePacketNavigation(btn, bookmark) {
   document.getElementById("packetInfoPane").style.display = "block";
   document.getElementById("packetPayloadPane").style.display = "block";
@@ -207,7 +229,6 @@ function handlePacketNavigation(btn, bookmark) {
     index = bookmark["Packet"];
     document.getElementById("host_filter").value = bookmark["Host"];
   }
-
   if (btn === "first-load") {
     index = 0;
     "Status: Displaying packet 1 of " + packetsForHost.length;
@@ -235,7 +256,6 @@ function handlePacketNavigation(btn, bookmark) {
   /* in the data main secton, this is where we would 
     add the packet info for each packet, for now we just
     dump the json, we'll format later 
-   
    packetsForHost[index] is an array of all packet info 
    for the current host, we want to be able to navigate
    through it with next and prev buttons */
@@ -247,6 +267,9 @@ function handlePacketNavigation(btn, bookmark) {
   pophexgrid(hexPayload);
 }
 
+/**
+ * Populates the hex grid display with the given hex string.
+ */
 function pophexgrid(hex) {
   document.getElementById("hexg").textContent = "";
   const container = document.getElementById("hexg");
@@ -258,9 +281,11 @@ function pophexgrid(hex) {
   }
 }
 
+/**
+ * Utility to create a table from data and headers, and append to a container.
+ */
 function createTable(data, headers, containerId) {
   const table = document.createElement("table");
-
   const headerRow = document.createElement("tr");
   headers.forEach((text) => {
     const th = document.createElement("th");
@@ -268,7 +293,6 @@ function createTable(data, headers, containerId) {
     headerRow.appendChild(th);
   });
   table.appendChild(headerRow);
-
   data.forEach((item) => {
     const row = document.createElement("tr");
     Object.values(item).forEach((value) => {
@@ -278,10 +302,12 @@ function createTable(data, headers, containerId) {
     });
     table.appendChild(row);
   });
-
   document.getElementById(containerId).appendChild(table);
 }
 
+/**
+ * Updates the info panel with details about the current packet.
+ */
 function infoPanel() {
   document.getElementById("summary_box").style.display = "none";
   infoPane = document.getElementById("packetInfoPane");
@@ -307,7 +333,6 @@ function infoPanel() {
   document.getElementById("sidedatatable").textContent = "";
   document.getElementById("protoInfoSrc").textContent = "Source";
   document.getElementById("protoInfoDest").textContent = "Destination";
-
   const chkd = [
     { name: "IP Checksum", value: ipchksum },
     { name: "TCP Checksum", value: tcpchksum },
@@ -319,28 +344,29 @@ function infoPanel() {
   ];
   const chkh = ["Protocol data", "Details"];
   createTable(chkd, chkh, "sidedatatable");
-
   const iph = ["Packet", "Data"];
   const ipds = [
-    { name: "IP:PORT", value: sourcepair },
-    { name: "MAC Src", value: macsrc },
-    { name: "MAC Src Vendor", value: macsrcvendor },
+    { name: "IP:Port", value: sourcepair },
+    { name: "MAC", value: macsrc },
+    { name: "MAC Vendor", value: macsrcvendor },
   ];
   createTable(ipds, iph, "protoInfoSrc");
   const ipdd = [
-    { name: "IP:PORT", value: destpair },
-    { name: "MAC Dest", value: macdest },
-    { name: "MAC Dest Vendor", value: macdestvendor },
+    { name: "IP:Port", value: destpair },
+    { name: "MAC", value: macdest },
+    { name: "MAC Vendor", value: macdestvendor },
   ];
   createTable(ipdd, iph, "protoInfoDest");
   document.getElementById("timestamp").textContent = "Timestamp: " + ts;
   document.getElementById("ip2ip").textContent = sourcepair + " ~ " + destpair;
 }
 
+/**
+ * Example function to run a binary (not used in main flow).
+ */
 function runMyBinary() {
   // Be sure to make the path absolute
   const command = `"${path.resolve(binaryPath)}"`;
-
   exec(command, (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error: ${error}`);
@@ -350,6 +376,9 @@ function runMyBinary() {
     console.error(`stderr: ${stderr}`);
   });
 }
+
+// On page load, hide packet info and payload panes
 onload = function () {
-  writeSummary();
+  document.getElementById("packetInfoPane").style.display = "none";
+  document.getElementById("packetPayloadPane").style.display = "none";
 };

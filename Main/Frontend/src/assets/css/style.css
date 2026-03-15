@@ -17,6 +17,7 @@ body {
   height: 100vh;
   font-family: "Courier New", Courier, monospace;
   font-color: --var(--color-5);
+  overflow: hidden;
 }
 
 /* Outer container */
@@ -32,6 +33,7 @@ body {
   font-color: var(--color-5);
   scrollbar-color: var(--color-4) var(--color-1);
   height: 98%;
+  z-index: 1;
 }
 
 /* Top title bar */
@@ -151,7 +153,6 @@ hr {
 
 /* Main panel */
 .main_panel {
-  flex: 1;
   margin-left: 30px;
   margin-right: 30px;
   background-color: #111;
@@ -160,7 +161,7 @@ hr {
   box-sizing: border-box;
   font-family: word-break, monospace;
   align-items: center;
-  width: 90%;
+  width: 1200px;
   justify-items: center;
 }
 
@@ -233,7 +234,7 @@ strong {
 /* Status bar */
 #status {
   text-align: left;
-  margin-top: 3px;
+  margin-top: 15px;
   padding-top: 2px;
   margin-bottom: 3px;
   margin-left: 15px;
@@ -253,7 +254,8 @@ strong {
   background-color: var(--color-4);
   height: 90.5%;
   padding: 5px;
-  width: 103.5%;
+  width: 103%;
+  /*  width: 103.5%; */
 }
 
 #copyright {
@@ -265,10 +267,11 @@ strong {
 }
 
 #packetInfoPane {
+  width: 103.5%;
   color: var(--color-1);
   font-size: 13px;
-  width: 102.5%;
-  display: flex;
+  /*  width: 102.5%; */
+  display: block;
   background-color: var(--color-4);
   height: 43%;
   border: 8px solid var(--color-3);
@@ -277,7 +280,7 @@ strong {
 #moredata {
   placement: absolute;
   display: block;
-  width: 220px;
+  /*  width: 220px; */
   margin-left: 15px;
   margin-top: 10px;
 }
@@ -290,21 +293,26 @@ strong {
 
 #timestamp {
   font-size: 13px;
-  placement: absolute;
+  color: var(--color-1);
   width: 90%;
+
+  position: absolute;
+  margin-left: 770px;
+  margin-top: -32px;
 }
 
 #ip2ip {
-  font-size: 13px;
+  color: white;
+  font-size: 15px;
   placment: absolute;
   text-align: center;
   display: block;
   width: 90%;
-  margin-top: -15px;
 }
 
 #packetPayloadPane {
-  width: 104%;
+  width: 105%;
+  /*()  width: 104%; */
   overflow: scroll;
   overflow-x: hidden;
   padding: 2px;
@@ -355,7 +363,7 @@ strong {
 }
 
 .footer {
-  position: fixed;
+  position: relative;
   background-color: black;
   height: 10px;
   width: 92%;
