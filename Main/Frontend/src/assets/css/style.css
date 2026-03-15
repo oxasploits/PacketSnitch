@@ -22,8 +22,8 @@ body {
 
 /* Outer container */
 .container_box {
-  width: 96%;
-  height: 96%;
+  width: 99%;
+  height: 99%;
   border: 3px solid var(--color-3);
   display: flex;
   flex-direction: column;
@@ -124,7 +124,8 @@ hr {
 
 /* Sidebar */
 .sidebar {
-  width: 210px;
+  display: block;
+  width: 230px;
   background-color: var(--color-4);
   border: 1px solid var(--color-3);
   padding: 1px;
@@ -134,6 +135,7 @@ hr {
   padding-top: 2px;
   margin-left: 6px;
   height: 94%;
+  align-items: center;
 }
 
 .sidebar select {
@@ -198,27 +200,40 @@ strong {
   margin-left: 230px;
   display: flex;
   gap: 10px;
-  max-width: 600px;
+  max-width: 400px;
 }
 
 .menu-btns {
-  background-color: var(--color-3);
-  border: 2px solid var(--color-1);
-  width: 150px;
-  color: var(--color-1);
+  font-weight: bold;
+  width: 98%;
+  background-color: var(--color-2);
+  border: 2px solid black;
+  color: white;
   padding: 5px 0px;
   text-align: center;
   align-items: center;
   text-decoration: none;
   display: block;
   font-size: 14px;
+  border-radius: 5px;
+  transition:
+    background-color 0.3s,
+    border-color 0.3s;
+}
+
+.menu-btns:hover,
+.menu-btns:focus {
+  background-color: var(--color-4);
+  border-color: black;
+  cursor: pointer;
 }
 
 .custom-btns {
+  max-width: 140px;
   background-color: var(--color-2);
   border: 3px solid black;
-  width: 200px;
-  color: var(--color-5);
+  width: 140px;
+  color: white;
   padding: 5px 0px;
   text-align: center;
   align-items: center;
@@ -229,16 +244,26 @@ strong {
   cursor: pointer;
   font-weight: bold;
   border-radius: 5px;
+  transition:
+    background-color 0.3s,
+    border-color 0.3s;
+}
+
+.custom-btns:hover,
+.custom-btns:focus {
+  background-color: var(--color-4);
+  border-color: dark-gray;
+  cursor: pointer;
 }
 
 /* Status bar */
 #status {
   text-align: left;
-  margin-top: 15px;
+  margin-top: 30px;
   padding-top: 2px;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
   margin-left: 15px;
-  height: 20px;
+  height: 18px;
   background-color: black;
   color: white;
   border: 1px solid grey;
@@ -262,8 +287,10 @@ strong {
   width: 85%;
   text-align: center;
   padding: 5px;
-  bottom: 11px;
+  bottom: 24px;
   margin-left: 35px;
+  height: 5px;
+  margin-bottom: 5px;
 }
 
 #packetInfoPane {
@@ -315,7 +342,7 @@ strong {
   /*()  width: 104%; */
   overflow: scroll;
   overflow-x: hidden;
-  padding: 2px;
+  padding: 8px;
   background-color: var(--color-4);
   margin-top: -4px;
   border: 8px solid var(--color-3);
@@ -355,6 +382,25 @@ strong {
   font-family: monospace;
   text-align: center;
   box-sizing: border-box;
+  transition:
+    background-color 0.3s,
+    border-color 0.3s; /* Smooth transition */
+}
+
+.highlight-box {
+  background-color: lightgray;
+  padding: 20px;
+  border: 2px solid transparent;
+  transition:
+    background-color 0.3s,
+    border-color 0.3s; /* Smooth transition */
+}
+
+.griditem:hover,
+.griditem:focus {
+  background-color: var(--color-3); /* Highlight color */
+  border-color: white;
+  cursor: pointer;
 }
 
 .logo-cont {

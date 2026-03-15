@@ -61,11 +61,11 @@
           name="jsonFile"
         >
           <input type="file" id="json-upload" name="json-up" hidden />
-          <label for="json-upload" class="custom-btns">Choose JSON</label>
+          <label for="json-upload" class="menu-btns">Choose JSON</label>
         </form>
         <br />
         <!-- Dropdown menus -->
-        <select id="target_hosts" hidden>
+        <select id="target_hosts" hidden class="menu-btns">
           <option>ALL hosts</option>
           <option>Localnet Hosts</option>
         </select>
@@ -74,10 +74,12 @@
           type="button"
           id="setBookmark"
           value="Set Bookmark"
-          class="custom-btns"
+          class="menu-btns"
         />
-        <select id="selectBookmark">
-          <option value="" disabled selected>Select a bookmark</option>
+        <select id="selectBookmark" class="menu-btns">
+          <option class="menu-btns" value="" disabled selected>
+            Select a bookmark
+          </option>
         </select>
       </div>
       <div id="main" class="main_panel">
@@ -86,8 +88,8 @@
           <div id="ip2ip"></div>
           <div id="moredata"></div>
           <div id="protoInfo">
-            <div id="protoInfoSrc" class="infop">Source</div>
-            <div id="protoInfoDest" class="infop">Destination</div>
+            <div id="protoInfoSrc" class="infop"></div>
+            <div id="protoInfoDest" class="infop"></div>
           </div>
         </div>
         <div id="packetPayloadPane" class="main_panel">
