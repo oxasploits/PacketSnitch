@@ -314,6 +314,7 @@ strong {
   background-color: var(--color-4);
   height: 43%;
   border: 8px solid var(--color-3);
+  height: 60%;
 }
 
 #moredata {
@@ -375,6 +376,24 @@ strong {
   font-size: 14px;
 }
 
+#entropybox {
+  text-align: center;
+  font-size: 26px;
+  fot-weight: bold;
+}
+
+.low {
+  color: green;
+}
+
+.med {
+  color: orange;
+}
+
+.high {
+  color: red;
+}
+
 #packetPayloadPane {
   width: 105%;
   /*()  width: 104%; */
@@ -384,7 +403,7 @@ strong {
   background-color: var(--color-4);
   margin-top: -4px;
   border: 8px solid var(--color-3);
-  height: 52%;
+  height: 32.7%;
 }
 #protoInfo {
   margin-top: 10px;

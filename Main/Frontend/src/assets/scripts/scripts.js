@@ -400,11 +400,21 @@ function infoPanel() {
     { name: "MAC Vendor", value: macdestvendor },
   ];
   createTable(ipdd, iph, "protoInfoDest");
+  entropy = einfo["Traits"]["Shannon Entropy"];
   document.getElementById("timestamp").textContent = "Timestamp: " + ts;
   document.getElementById("ip2ip").textContent = sourcepair + " ~ " + destpair;
   snetclass = einfo["Traits"]["Network Data"]["Source IP"]["Class"];
   dnetclass = einfo["Traits"]["Network Data"]["Destination IP"]["Class"];
   document.getElementById("sideloctable").textContent = "";
+  document.getElementById("entropybox").textContent = entropy.toFixed(2);
+  ebox = document.getElementById("entropybox");
+  if (entropy >= 6.8) {
+    ebox.className = "high";
+  } else if (entropy >= 4.5) {
+    ebox.className = "med";
+  } else {
+    ebox.className = "low";
+  }
   // Get all cells in the second column (nth-child(2))
   const secondColumnCells = document.querySelectorAll(
     "table tr td:nth-child(1), table tr th:nth-child(1)",
