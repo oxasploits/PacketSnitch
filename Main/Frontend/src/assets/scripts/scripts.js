@@ -12,7 +12,7 @@ let index = 0; // Navigation index for packets
 let bookmarkList = []; // List of bookmarks (host:packet index)
 let bookmark = {}; // Current bookmark object
 let firstRun = true; // Flag for first run to initialize hex grid
-const hostsjsonf = "/tmp/testcases/hosts.json";
+
 pophexgrid("00".repeat(256));
 
 // Set up file upload handler for JSON capture
@@ -503,4 +503,8 @@ function runMyBinary() {
 onload = function () {
   document.getElementById("packetInfoPane").style.display = "none";
   document.getElementById("packetPayloadPane").style.display = "none";
+  window.api.getJsonData().then((jsonData) => {
+    // Use jsonData here
+    console.log("Received JSON data from main process:", jsonData);
+  });
 };

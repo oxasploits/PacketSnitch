@@ -5,31 +5,8 @@ const CopyPlugin = require("copy-webpack-plugin");
 const { ipcMain } = require("electron");
 const { exec } = require("child_process");
 const path = require("path");
-ipcMain.on("run-command", (event) => {
-  let binaryPath;
-  if (process.env.NODE_ENV === "development") {
-    binaryPath = path.join(__dirname, "..", "backend", "backend/snitch");
-  } else {
-    binaryPath = path.join(
-      process.resourcesPath,
-      "backend",
-      "/usr/lib/packetsnitch/resources/backend/snitch",
-    );
-  }
-
-  exec(binaryPath, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error executing command: ${error.message}`);
-      event.reply("command-result", `Error: ${error.message}`);
-      return;
-    }
-    console.log(`Command output: ${stdout}`);
-    console.error(`Command error output: ${stderr}`);
-    event.reply("command-result", stdout || stderr);
-  });
-});
-
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
+const fs = require("fs");
 if (require("electron-squirrel-startup")) {
   app.quit();
 }
@@ -46,8 +23,14 @@ const createWindow = () => {
     },
   });
 
-  // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+  // and load the index.html of the app.
+  ipcMain.handle("get-json-data", async () => {
+    const data = fs.readFileSync("/tmp/testcases/hosts.json", "utf8");
+    mainWindow.webContents.send("get-json-data", data);
+
+    return data;
+  });
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
@@ -76,6 +59,3 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
