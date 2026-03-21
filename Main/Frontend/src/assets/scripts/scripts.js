@@ -26,6 +26,14 @@ document
     }
   });
 
+document
+  .getElementById("pcap-filename")
+  .addEventListener("click", function (event) {
+    window.getfileapi.selectFile().then((filePath) => {
+      if (filePath) runSnitch(filePath);
+    });
+  });
+
 /**
  * Display packet info in either table or pretty JSON format,
  * depending on user selection.
@@ -214,7 +222,7 @@ document.getElementById("next-btn").addEventListener("click", function () {
 // Handle bookmark selection from dropdown
 document
   .getElementById("selectBookmark")
-  .addEventListener("change", function () {
+  .addEventListener("click", function () {
     host = document.getElementById("selectBookmark").value.split(":")[0];
     index = document.getElementById("selectBookmark").value.split(":")[1];
     host_filter.value = host;
@@ -296,14 +304,32 @@ function populateDataTypes() {
   list = document.getElementById("types-list");
   list.textContent = "";
   mtype = document.getElementById("mime-type");
+  chars = document.getElementById("charset");
+  encode = document.getElementById("encoding");
   packetsForHost = packets["Host"][host_filter.value];
+  charset = JSON.parse(
+    JSON.stringify(
+      packetsForHost[index]["Extra Info"]["Traits"]["Characters"]["Charset"],
+    ),
+  );
+  encoding = JSON.parse(
+    JSON.stringify(
+      packetsForHost[index]["Extra Info"]["Traits"]["Characters"]["Encoding"],
+    ),
+  );
+
   mimet = JSON.parse(
     JSON.stringify(packetsForHost[index]["Extra Info"]["MIME Type"]),
   );
   items = JSON.parse(
     JSON.stringify(packetsForHost[index]["Extra Info"]["Data Types"]),
   );
-  mtype.textContent = "MIME Type: " + mimet;
+  mtype.textContent = "MIME type: " + mimet;
+  charset = charset == "" ? "Unknown" : charset;
+  encoding = encoding == "" ? "Unknown" : encoding;
+  chars.textContent = " Payload Charset: " + charset;
+  encode.textContent = "Payload Encoding: " + encoding;
+
   items.forEach((item) => {
     const listItem = document.createElement("li");
     listItem.textContent = item;
@@ -354,6 +380,8 @@ function createTable(data, headers, containerId) {
  */
 function infoPanel() {
   infoPane = document.getElementById("packetInfoPane");
+  document.getElementById("rightside").style.display = "block";
+  document.getElementById("leftside").style.display = "block";
   infoPaneOrig = infoPane.innerHTML;
   infoPane.style.display = "block";
   p = JSON.parse(JSON.stringify(packetsForHost[index]));
@@ -383,8 +411,8 @@ function infoPanel() {
     { name: "IP Checksum", value: ipchksum },
     { name: "TCP Checksum", value: tcpchksum },
     { name: "Flags", value: flags },
-    { name: "IP Layer Length", value: iplayrelen },
-    { name: "TCP Layer Length", value: tcplayrelen },
+    { name: "IP Length", value: iplayrelen },
+    { name: "TCP Length", value: tcplayrelen },
     { name: "Wire Length", value: wirelen },
     { name: "Payload Length", value: payloadlen },
   ];
@@ -422,11 +450,19 @@ function infoPanel() {
     "table tr td:nth-child(1), table tr th:nth-child(1)",
   );
   secondColumnCells.forEach((cell) => {
-    cell.style.width = "27%";
+    cell.style.width = "23%";
   });
 
-  if (snetclass == "A") {
-    const locd = [
+  //  if (snetclass == "A") {
+  if (
+    einfo["Traits"]["Network Data"]["Source IP"]["Location"]["City"] ==
+    undefined
+  ) {
+    const nodata = [{ name: "Location", value: "Localnet" }];
+    const nodatah = ["Source Host", "Location"];
+    createTable(nodata, nodatah, "sideloctable");
+  } else {
+    const locds = [
       {
         name: "Country",
         value:
@@ -442,11 +478,19 @@ function infoPanel() {
           einfo["Traits"]["Network Data"]["Source IP"]["Location"]["Time Zone"],
       },
     ];
-    const loch = ["Source Host", "Location"];
-    createTable(locd, loch, "sideloctable");
+    const lochs = ["Source Host", "Location"];
+    createTable(locds, lochs, "sideloctable");
   }
-  if (dnetclass == "A") {
-    const locd = [
+  //  if (dnetclass == "A") {
+  if (
+    einfo["Traits"]["Network Data"]["Destination IP"]["Location"]["City"] ==
+    undefined
+  ) {
+    const nodata = [{ name: "Location", value: "Localnet" }];
+    const nodatah = ["Destination Host", "Location"];
+    createTable(nodata, nodatah, "sideloctable");
+  } else {
+    const locdd = [
       {
         name: "Country",
         value:
@@ -461,34 +505,35 @@ function infoPanel() {
       },
       {
         name: "Timezone",
+
         value:
           einfo["Traits"]["Network Data"]["Destination IP"]["Location"][
             "Time Zone"
           ],
       },
     ];
-    const loch = ["Destination Host", "Location"];
-    createTable(locd, loch, "sideloctable");
+    const lochd = ["Destination Host", "Location"];
+    createTable(locdd, lochd, "sideloctable");
+    //  }
   }
 }
-window.api.onJsonData((jsonData) => {
+
+window.jsonapi.onJsonData((jsonData) => {
   processFile(
     new File([jsonData], "capture.json", { type: "application/json" }),
   );
 });
 
+function runSnitch(file) {
+  window.snitchapi.runBackendCommand(file).then((output) => {
+    console.log("Backend output:", output);
+  });
+}
+
 // On page load, hide packet info and payload panes
 onload = function () {
   document.getElementById("packetInfoPane").style.display = "none";
   document.getElementById("packetPayloadPane").style.display = "none";
-  filename = "blah.pcap";
-
-  window.apicomm
-    .runBackendCommand(filename)
-    .then((output) => {
-      console.log("Backend output:", output);
-    })
-    .catch((err) => {
-      console.error("Backend error:", err);
-    });
+  document.getElementById("rightside").style.display = "none";
+  document.getElementById("leftside").style.display = "none";
 };

@@ -68,6 +68,7 @@ llm_call_lock = threading.Semaphore(nllmthreads)  # Limit concurrent LLM calls
 pprocess_lock = threading.Semaphore(nthreads)
 hostoutfile = "hosts.json"
 script_dir = os.path.dirname(os.path.realpath(__file__)) + "/"
+os.chdir(script_dir)
 
 
 def llm_query(packet_infos):

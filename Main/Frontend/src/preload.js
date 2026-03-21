@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-contextBridge.exposeInMainWorld("api", {
+contextBridge.exposeInMainWorld("jsonapi", {
   onJsonData: (callback) => {
     ipcRenderer.on("json-data", (event, data) => {
       callback(data);
@@ -8,7 +8,11 @@ contextBridge.exposeInMainWorld("api", {
   },
 });
 
-contextBridge.exposeInMainWorld("apicomm", {
+contextBridge.exposeInMainWorld("snitchapi", {
   runBackendCommand: (filename) =>
     ipcRenderer.invoke("run-backend-command", filename),
+});
+
+contextBridge.exposeInMainWorld("getfileapi", {
+  selectFile: () => ipcRenderer.invoke("select-file"),
 });

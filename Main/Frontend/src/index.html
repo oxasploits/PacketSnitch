@@ -63,24 +63,38 @@
           <input type="file" id="json-upload" name="json-up" hidden />
           <label for="json-upload" class="menu-btns">Choose JSON</label>
         </form>
-        <br />
+        <br /><br />
+
+        <!--
+        <form
+          method="post"
+          enctype="multipart/form-data"
+          id="pcapFile"
+          name="pcapFile"
+        >  -->
+        <input type="button" id="pcap-filename" name="pcap-up" hidden />
+        <label for="pcap-filename" class="menu-btns">Choose PCAP</label>
+        <!--   </form>  -->
+        <br /><br />
         <!-- Dropdown menus -->
-        <select id="target_hosts" hidden class="menu-btns">
-          <option>ALL hosts</option>
-          <option>Localnet Hosts</option>
-        </select>
-        <br />
-        <input
-          type="button"
-          id="setBookmark"
-          value="Set Bookmark"
-          class="menu-btns"
-        />
-        <select id="selectBookmark" class="menu-btns">
-          <option class="menu-btns" value="" disabled selected>
-            Select a bookmark
-          </option>
-        </select>
+        <div id="leftside">
+          <select id="target_hosts" hidden class="menu-btns">
+            <option>ALL hosts</option>
+            <option>Localnet Hosts</option>
+          </select>
+          <br />
+          <input
+            type="button"
+            id="setBookmark"
+            value="Set Bookmark"
+            class="menu-btns"
+          />
+          <select id="selectBookmark" class="menu-btns">
+            <option class="menu-btns" value="" disabled selected>
+              Select a bookmark
+            </option>
+          </select>
+        </div>
       </div>
       <div id="main" class="main_panel">
         <div id="welcome">Processing packets...</div>
@@ -99,7 +113,11 @@
             <div id="dataTypesHead" class="PHead">Data Type List</div>
 
             <div id="dataTypesPane">
-              <div id="mime-type"></div>
+              <div id="type-head" class="infop">
+                <div id="mime-type"></div>
+                <div id="charset"></div>
+                <div id="encoding"></div>
+              </div>
               <ul id="types-list"></ul>
             </div>
           </div>
@@ -110,13 +128,15 @@
         </div>
       </div>
       <div class="sidebar" id="sidedata">
-        <div class="sidebar-header">Payload Specifics</div>
-        <div id="sidedatatable" class="sidetable"></div>
-        <div class="sidebar-header">Location</div>
-        <div id="locationtable" class="sidetable"></div>
-        <div id="sideloctable" class="sidetable"></div>
-        <div class="sidebar-header">Payload Entopy</div>
-        <div id="entropybox"></div>
+        <div id="rightside">
+          <div class="sidebar-header">Payload Specifics</div>
+          <div id="sidedatatable" class="sidetable"></div>
+          <div class="sidebar-header">Location</div>
+          <div id="locationtable" class="sidetable"></div>
+          <div id="sideloctable" class="sidetable"></div>
+          <div class="sidebar-header">Payload Entopy</div>
+          <div id="entropybox"></div>
+        </div>
       </div>
     </div>
     <div class="footer">

@@ -28,7 +28,3 @@
 
 import "./assets/css/style.css";
 import "./assets/scripts/scripts.js";
-
-webPreferences: {
-  nodeIntegration: true;
-}

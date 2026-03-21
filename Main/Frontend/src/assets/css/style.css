@@ -333,9 +333,8 @@ strong {
   font-size: 13px;
   color: var(--color-1);
   width: 90%;
-
   position: absolute;
-  margin-left: 770px;
+  margin-left: 700px;
   margin-top: -32px;
 }
 
@@ -366,6 +365,24 @@ strong {
 
 #mime-type {
   font-size: 14px;
+  justify-content: left;
+  text-align: left;
+  color: var(--color-1);
+  margin-top: 10px;
+  margin-left: 15px;
+}
+#charset {
+  font-size: 14px;
+  justify-content: left;
+  text-align: left;
+  color: var(--color-1);
+  margin-top: 10px;
+  margin-left: 15px;
+}
+#encoding {
+  font-size: 14px;
+  justify-content: left;
+  text-align: left;
   color: var(--color-1);
   margin-top: 10px;
   margin-left: 15px;
