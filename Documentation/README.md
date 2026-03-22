@@ -24,8 +24,16 @@ PacketSnitch is a Python tool for extracting payloads and rich metadata from net
 
 ## Requirements
 
-- Python 3.7+
+- Python 3.7+ (backend)
+- NodeJS 16.4 / Electron Forge 7.11 (frontend) 
+- Ollama LLM server (maxmind-m2.5:cloud)
 - Dependencies:
+  - electron forge
+  - webpack
+  - fs-extra
+  - electron-squirrel-start
+  - copy-webpack-plugin
+  - ollama
   - scapy
   - numpy
   - requests
@@ -40,10 +48,18 @@ PacketSnitch is a Python tool for extracting payloads and rich metadata from net
   - MAC vendor CSV
   - ICANN port description CSV
 
+
 ## Usage
+
+(Dev)
 
 ```bash
 python3 gen_testcase.py traffic.pcap -o output_dir [-s SRC_PORT] [-d DST_PORT] [-T TIMEOUT] [-a] [-c conf.yaml] [-v]
+```
+
+```bash
+npm run make
+npm start
 ```
 
 ### Arguments
