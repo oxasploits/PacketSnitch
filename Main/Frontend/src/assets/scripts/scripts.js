@@ -10,7 +10,7 @@ let currentPacketIndex = 0; // Index of currently displayed packet
 let packetsForHost = []; // Packets for the currently selected host
 let index = 0; // Navigation index for packets
 let bookmarkList = []; // List of bookmarks (host:packet index)
-let bookmark = {}; // Current bookmark object
+let bookmark = {}; // Current bookmark obje22
 let firstRun = true; // Flag for first run to initialize hex grid
 
 pophexgrid("00".repeat(256));
@@ -336,19 +336,76 @@ function populateDataTypes() {
     list.appendChild(listItem);
   });
 }
-
+function isPrintable(charCode) {
+  // ASCII printable: 32 (space) to 126 (~)
+  return charCode >= 32 && charCode <= 126;
+}
+function hexToAscii(hex) {
+  let ascii = "";
+  for (let i = 0; i < hex.length; i += 2) {
+    ascii += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+  }
+  console.log("Converted hex to ASCII:", ascii);
+  return ascii;
+}
 /**
  * Populates the hex grid display with the given hex string.
  */
 function pophexgrid(hex) {
+  asciibox = document.getElementById("payloadascii");
+  // swap it back to ascii for the fade box
+  ascii = hexToAscii(hex);
   document.getElementById("hexg").textContent = "";
   const container = document.getElementById("hexg");
+  // this block populates the grid with boxes for hex codes
   for (x of hex.toUpperCase().match(/.{1,2}/g)) {
     const item = document.createElement("div");
     item.classList.add("griditem");
     item.textContent = x;
     container.appendChild(item);
   }
+  function getPrintableSequence(startIndex) {
+    let result = "";
+    for (let i = startIndex; i < ascii.length; i++) {
+      if (!isPrintable(ascii.charCodeAt(i))) break;
+      result += String.fromCharCode(ascii.charCodeAt(i));
+    }
+    return result;
+  }
+  // Attach event listeners to each grid item
+  document.querySelectorAll(".griditem").forEach((item, idx) => {
+    item.addEventListener("mouseenter", () => {
+      //box fade in
+      offsetbox = document.getElementById("asciiOffset");
+      textbox = document.getElementById("asciiText");
+      asciibox.classList.add("visible");
+      textbox.innerHTML = "";
+      const printable = getPrintableSequence(idx);
+      window.currentPrintableSequence = printable;
+      item.isHighlighted = true;
+      // adds only consecutive printable characters to the ascii box
+      textbox.textContent += truncate(printable, 32);
+      hexlen = parseInt(truncate(printable, 32).length, 10)
+        .toString(16)
+        .padStart(2, "0")
+        .toUpperCase();
+
+      offsetbox.textContent = "0x" + decToHex(idx, 4) + ":" + hexlen;
+    });
+  });
+  // this fades the box back out
+  document.querySelectorAll(".griditem").forEach((item) => {
+    item.addEventListener("mouseleave", () => {
+      asciibox.classList.remove("visible");
+    });
+  });
+}
+function truncate(str, maxLength) {
+  if (str.length <= maxLength) return str;
+  return str.slice(0, maxLength);
+}
+function decToHex(num, pad) {
+  return num.toString(16).padStart(pad, "0");
 }
 
 /**
@@ -372,6 +429,7 @@ function createTable(data, headers, containerId) {
     });
     table.appendChild(row);
   });
+
   document.getElementById(containerId).appendChild(table);
 }
 
