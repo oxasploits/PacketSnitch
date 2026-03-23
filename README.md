@@ -1,4 +1,4 @@
-![PacketSnitch](https://raw.githubusercontent.com/oxasploits/PacketSnitch/refs/heads/main/Documentation/packetsnitch-ss16.png)
+![PacketSnitch](https://github.com/oxasploits/PacketSnitch/blob/main/Logo/packet-snitch-tag-transp-whitetext.png)
 
 ## Overview
 
