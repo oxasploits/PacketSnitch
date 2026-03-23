@@ -26,9 +26,8 @@ This is a screenshot of *PacketSnitch alpha v0.9.114*.
 - Verbose/debug output modes.
 
 ## License
-Commercial
 
-Commercial
+GNU GPLv3
 
 ## Author
 
