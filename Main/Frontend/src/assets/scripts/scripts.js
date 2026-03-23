@@ -13,7 +13,7 @@ let bookmarkList = []; // List of bookmarks (host:packet index)
 let bookmark = {}; // Current bookmark obje22
 let firstRun = true; // Flag for first run to initialize hex grid
 
-pophexgrid("00".repeat(256));
+popHexGrid("00".repeat(256));
 
 // Set up file upload handler for JSON capture
 document
@@ -122,7 +122,7 @@ function highlightTab(tabId) {
 
 // Show summary when summary button is clicked
 document.getElementById("summary-btn").addEventListener("click", function () {
-  document.getElementById("welcome").style.display = "The Analysis:";
+  //  document.getElementById("welcome").style.display = "The Analysis:";
   document.getElementById("welcome").style.display = "block";
   writeSummary();
 });
@@ -153,7 +153,7 @@ function writeSummary() {
       firstRun = false;
       setTimeout(() => {
         document.getElementById("summary_box").style.display = "block";
-        document.getElementById("welcome").innerHTML = "The Analysis:";
+        //     document.getElementById("welcome").innerHTML = "The Analysis:";
       }, 8000);
     } else {
       document.getElementById("summary_box").style.display = "block";
@@ -208,17 +208,21 @@ document
     packetsForHost = packets["Host"][host];
     bookmark["Host"] = host;
     bookmark["Packet"] = index;
+    document.getElementById("target_hosts").value = host;
     handlePacketNavigation("bookmark", bookmark);
   });
 
 // Add current packet as a bookmark
 document.getElementById("setBookmark").addEventListener("click", function () {
   curPacket = document.getElementById("host_filter").value + ":" + index;
+
   if (!bookmarkList.includes(curPacket)) {
-    bookmarkList.push(curPacket);
-    document
-      .getElementById("selectBookmark")
-      .appendChild(new Option(curPacket, curPacket));
+    if (curPacket != undefined) {
+      bookmarkList.push(curPacket);
+      document
+        .getElementById("selectBookmark")
+        .appendChild(new Option(curPacket, curPacket));
+    }
   }
 });
 
@@ -237,46 +241,66 @@ function handlePacketNavigation(btn, bookmark) {
   }
   packetsForHost = packets["Host"][host_filter.value];
   if (btn === "bookmark") {
-    index = bookmark["Packet"];
-    document.getElementById("host_filter").value = bookmark["Host"];
+    if (bookmark["Host"] == undefined || bookmark["Packet"] == undefined) {
+      statusUpdate("Status: Invalid bookmark data, reverting to first packet");
+      handlePacketNavigation("first-load");
+    } else {
+      index = bookmark["Packet"];
+      document.getElementById("host_filter").value = bookmark["Host"];
+    }
   }
-  if (btn === "first-load") {
-    index = 0;
-    "Status: Displaying packet 1 of " + packetsForHost.length;
-  } else if (index >= 0 && btn === "prev-btn") {
-    index--;
-    statusUpdate(
-      "Status: Displaying packet " + index + " of " + packetsForHost.length,
-    );
-  } else if (index <= packetsForHost.length && btn === "next-btn") {
-    index++;
-    statusUpdate(
-      "Status: Displaying packet " + index + " of " + packetsForHost.length,
-    );
+  if (!packetsForHost || packetsForHost.length === 0) {
+    statusUpdate("Status: No packets found for this host");
   } else {
-    statusUpdate("Status: No more packets in this direction");
+    if (btn === "first-load") {
+      index = 0;
+      "Status: Displaying packet 1 of " + packetsForHost.length;
+    } else if (index >= 0 && btn === "prev-btn") {
+      index--;
+      statusUpdate(
+        "Status: Displaying packet " + index + " of " + packetsForHost.length,
+      );
+    } else if (
+      packetsForHost != undefined &&
+      index <= packetsForHost.length &&
+      btn === "next-btn"
+    ) {
+      index++;
+      statusUpdate(
+        "Status: Displaying packet " + index + " of " + packetsForHost.length,
+      );
+    } else {
+      statusUpdate("Status: No more packets in this direction");
+    }
+    if (packetsForHost != undefined && packetsForHost[index] == undefined) {
+      statusUpdate("Status: Index out of range, reverting to zero");
+      index = 0;
+    }
+    if (
+      packetsForHost != undefined &&
+      (packetsForHost.length == 0 || packetsForHost[0] == undefined)
+    ) {
+      statusUpdate("Status: No packet information found for this host");
+      document.getElementById("main").innerHTML = "Please select a json file!";
+    }
+    // in the data main secton, this is where we would
+    // add the packet info for each packet, for now we just
+    // dump the json, we'll format later
+    // packetsForHost[index] is an array of all packet info
+    // for the current host, we want to be able to navigate
+    // through it with next and prev buttons
+    if (packetsForHost == undefined || packetsForHost[index] == undefined) {
+      statusUpdate("Status: No packet information found for this host");
+    } else {
+      ip = document.getElementById("host_filter").value;
+      packetDecoded = JSON.parse(JSON.stringify(packetsForHost[index]));
+      hexPayload =
+        packetDecoded["Packet Info"]["Raw data"]["Payload"]["Hex Encoded"];
+      infoPanel();
+      popHexGrid(hexPayload);
+      populateDataTypes();
+    }
   }
-  if (packetsForHost[index] == undefined) {
-    statusUpdate("Status: Index out of range, reverting to zero");
-    index = 0;
-  }
-  if (packetsForHost.length == 0 || packetsForHost[0] == undefined) {
-    statusUpdate("Status: No packet information found for this host");
-    document.getElementById("main").innerHTML = "Please select a json file!";
-  }
-  // in the data main secton, this is where we would
-  // add the packet info for each packet, for now we just
-  // dump the json, we'll format later
-  // packetsForHost[index] is an array of all packet info
-  // for the current host, we want to be able to navigate
-  // through it with next and prev buttons
-  ip = document.getElementById("host_filter").value;
-  packetDecoded = JSON.parse(JSON.stringify(packetsForHost[index]));
-  hexPayload =
-    packetDecoded["Packet Info"]["Raw data"]["Payload"]["Hex Encoded"];
-  infoPanel();
-  pophexgrid(hexPayload);
-  populateDataTypes();
 }
 
 function populateDataTypes() {
@@ -307,7 +331,7 @@ function populateDataTypes() {
   charset = charset == "" ? "Unknown" : charset;
   encoding = encoding == "" ? "Unknown" : encoding;
   chars.textContent = "\u2202 Payload Charset: " + charset;
-  encode.textContent = "\u2211 Payload Encoding: " + encoding;
+  encode.textContent = "\u0950 Payload Encoding: " + encoding;
 
   items.forEach((item) => {
     const listItem = document.createElement("li");
@@ -352,7 +376,7 @@ function clearGridHighlights() {
 /**
  * Populates the hex grid display with the given hex string.
  */
-function pophexgrid(hex) {
+function popHexGrid(hex) {
   asciibox = document.getElementById("payloadascii");
   // swap it back to ascii for the fade box
   ascii = hexToAscii(hex);
@@ -394,6 +418,9 @@ function pophexgrid(hex) {
         .padStart(2, "0")
         .toUpperCase();
       hexoffset = idx.toString(16).padStart(4, "0").toUpperCase();
+      if (printable.length == 0) {
+        textbox.textContent = "0x" + item.textContent;
+      }
       offsetbox.textContent = "0x" + hexoffset + ":" + hexlen;
     });
   });
@@ -476,31 +503,31 @@ function infoPanel() {
     { name: "IP Length \u2366", value: iplayrelen },
     { name: "TCP Length \u263F", value: tcplayrelen },
     { name: "Wire Length \u2123", value: wirelen },
-    { name: "Payload Length \u2318", value: payloadlen },
+    { name: "Payload Length \u0905", value: payloadlen },
   ];
   const chkh = ["Protocol data", "Details"];
   createTable(chkd, chkh, "sidedatatable");
   const iph = ["Packet", "Data"];
   const ipds = [
-    { name: "IP:Port \u273C", value: sourcepair },
+    { name: "IP:Port \u25ce", value: sourcepair },
     { name: "MAC \u03C3", value: macsrc },
     { name: "MAC Vendor \u03b3", value: macsrcvendor },
-    { name: "Network Class \u03c0", value: snetclass },
+    { name: "Network Class \u097E", value: snetclass },
   ];
   createTable(ipds, iph, "protoInfoSrc");
   const ipdd = [
-    { name: "IP:Port \u273C", value: destpair },
+    { name: "IP:Port \u25ce", value: destpair },
     { name: "MAC \u03C3", value: macdest },
     { name: "MAC Vendor \u03B3", value: macdestvendor },
-    { name: "Network Class \u03C0", value: dnetclass },
+    { name: "Network Class \u097E", value: dnetclass },
   ];
   createTable(ipdd, iph, "protoInfoDest");
   entropy = einfo["Traits"]["Shannon Entropy"];
   document.getElementById("timestamp").textContent = "Timestamp \u221E " + ts;
-  document.getElementById("ip2ip").textContent = sourcepair + " ~ " + destpair;
+  //document.getElementById("ip2ip").textContent = sourcepair + " ~ " + destpair;
   document.getElementById("sideloctable").textContent = "";
   document.getElementById("entropybox").textContent =
-    "\u29E7 " + entropy.toFixed(2);
+    "\u096F " + entropy.toFixed(2);
   ebox = document.getElementById("entropybox");
   if (entropy >= 6.8) {
     ebox.className = "high";
@@ -527,7 +554,7 @@ function infoPanel() {
   } else {
     const locds = [
       {
-        name: "Country \u2211",
+        name: "Country \u096D",
         value:
           einfo["Traits"]["Network Data"]["Source IP"]["Location"]["Country"],
       },
@@ -555,7 +582,7 @@ function infoPanel() {
   } else {
     const locdd = [
       {
-        name: "Country \u2211",
+        name: "Country \u096D",
         value:
           einfo["Traits"]["Network Data"]["Destination IP"]["Location"][
             "Country"

@@ -78,15 +78,13 @@
         <br /><br />
         <!-- Dropdown menus -->
         <div id="leftside">
-          <select id="target_hosts" hidden class="menu-btns">
-            <option>ALL hosts</option>
-            <option>Localnet Hosts</option>
-          </select>
+          <label for="target_hosts" class="menu-btns">Target Host</label>
+          <select id="target_hosts" hidden class="menu-btns"></select>
           <br />
           <input
             type="button"
             id="setBookmark"
-            value="Set Bookmark"
+            value="Bookmark"
             class="menu-btns"
           />
           <select id="selectBookmark" class="menu-btns">
@@ -97,13 +95,14 @@
         </div>
       </div>
       <div id="main" class="main_panel">
-        <div id="welcome">Processing packets...</div>
         <div id="packetInfoPane">
           <div id="timestamp"></div>
+
+          <div id="welcome">Processing packets...</div>
           <div id="ip2ip"></div>
           <div id="moredata"></div>
           <div id="protoInfo">
-            <div id="protoInfoHead" class="PHead">Protocol Information</div>
+            <div id="protoInfoHead" class="PHead">Network Information</div>
             <div id="protoInfoProto" class="infop">
               <div id="protoInfoSrc" class="infop"></div>
               <div id="protoInfoDest" class="infop"></div>
@@ -132,7 +131,7 @@
       </div>
       <div class="sidebar" id="sidedata">
         <div id="rightside">
-          <div class="sidebar-header">Payload Specifics</div>
+          <div class="sidebar-header">Datagram Frame</div>
           <div id="sidedatatable" class="sidetable"></div>
           <div class="sidebar-header">Location</div>
           <div id="locationtable" class="sidetable"></div>
