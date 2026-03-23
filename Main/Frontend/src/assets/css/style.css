@@ -1,10 +1,11 @@
 :root {
   --color-1: #7f80ff;
-  --color-2: #003b7a;
+  --color-2: #2a284a;
   --color-3: #8a87c0;
   --color-4: #161a2b;
   --color-5: #ccbdde;
   --color-6: #b5b5b5;
+  --color-7: #413f6e;
 }
 
 /* Page background */
@@ -31,7 +32,7 @@ body {
   box-sizing: border-box;
   background-color: black;
   font-color: var(--color-5);
-  scrollbar-color: var(--color-4) var(--color-1);
+  scrollbar-color: var(--color-7) black;
   height: 98%;
   z-index: 1;
 }
@@ -47,7 +48,7 @@ body {
 /* Top title bar */
 .top_bar {
   height: 40px;
-  background-color: var(--color-1);
+  background-color: var(--color-7);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -139,7 +140,7 @@ hr {
   border: 1px solid var(--color-3);
   padding: 1px;
   /*  box-sizing: border-box; */
-  color: var(--color-3);
+  color: white;
   margin-right: 1px;
   padding-top: 2px;
   margin-left: 6px;
@@ -176,12 +177,13 @@ hr {
 table,
 th,
 td {
+  background-color: var(--color-7);
   text-align: right;
   border: 1px solid var(--color-3);
   border-collapse: collapse;
   border-spacing: 3px;
   padding: 6px;
-  color: var(--color-1);
+  color: white;
   word-break: break-all;
   font-size: 11px;
   font-face: monospace, monospace;
@@ -191,13 +193,17 @@ table {
   width: 100%;
 }
 
+th {
+  color: var(--color-6);
+}
+
 td {
   color: white;
   width: 30%;
 }
 
 strong {
-  color: var(--color-1);
+  color: white;
 }
 
 .menu_bar {
@@ -213,7 +219,7 @@ strong {
 .menu-btns {
   font-weight: bold;
   width: 98%;
-  background-color: var(--color-2);
+  background-color: var(--color-7);
   border: 2px solid black;
   color: white;
   padding: 5px 0px;
@@ -230,14 +236,14 @@ strong {
 
 .menu-btns:hover,
 .menu-btns:focus {
-  background-color: var(--color-4);
+  background-color: var(--color-2);
   border-color: black;
   cursor: pointer;
 }
 
 .custom-btns {
   max-width: 140px;
-  background-color: var(--color-2);
+  background-color: var(--color-7);
   border: 3px solid black;
   width: 140px;
   color: white;
@@ -258,7 +264,7 @@ strong {
 
 .custom-btns:hover,
 .custom-btns:focus {
-  background-color: var(--color-4);
+  background-color: var(--color-2);
   border-color: dark-gray;
   cursor: pointer;
 }
@@ -283,7 +289,7 @@ strong {
 #summary_box {
   display: block;
   border: 8px solid var(--color-3);
-  background-color: var(--color-4);
+  background-color: var(--color-7);
   height: 90.5%;
   padding: 5px;
   width: 98%;
@@ -351,6 +357,7 @@ strong {
   margin-bottom: 20px;
   margin-top: 20px;
   width: 600px;
+  background-color: var(--color-7);
 }
 
 .sidebar-header {
@@ -365,7 +372,7 @@ strong {
   font-size: 14px;
   justify-content: left;
   text-align: left;
-  color: var(--color-1);
+  color: var(--color-6);
   margin-top: 10px;
   margin-left: 15px;
 }
@@ -373,7 +380,7 @@ strong {
   font-size: 14px;
   justify-content: left;
   text-align: left;
-  color: var(--color-1);
+  color: var(--color-6);
   margin-top: 10px;
   margin-left: 15px;
 }
@@ -381,7 +388,7 @@ strong {
   font-size: 14px;
   justify-content: left;
   text-align: left;
-  color: var(--color-1);
+  color: var(--color-6);
   margin-top: 10px;
   margin-left: 15px;
 }
@@ -394,7 +401,8 @@ strong {
 #entropybox {
   text-align: center;
   font-size: 26px;
-  fot-weight: bold;
+  font-weight: bold;
+  background-color: var(--color-7);
 }
 
 .low {
@@ -431,7 +439,7 @@ strong {
   font-size: 14px;
   width: 100%;
   display: flex;
-  color: var(--color-1);
+  color: var(--color-6);
 }
 
 .PHead {
@@ -445,8 +453,9 @@ strong {
 #protoInfoSrc,
 #protoInfoDest {
   width: 100%;
-  color: var(--color-1);
+  color: var(--color-6);
   font-size: 14px;
+  background-color: var(--color-7);
 }
 
 /* this is here to setup the grid bed */
@@ -460,7 +469,7 @@ strong {
   width: 896px;
   margin: 0 auto;
   border: 1px solid #ccc;
-  background-color: var(--color-3);
+  background-color: var(--color-7);
 }
 
 /* sets up the boxes on the grid waiting */
@@ -482,7 +491,7 @@ strong {
 
 /* this is for the consecutive ones that are highlighted */
 .griditem.highlight {
-  background-color: var(--color-3);
+  background-color: #413f6e;
   border-color: white;
   transition:
     background-color 0.3s,
@@ -492,7 +501,7 @@ strong {
 /* this is for the one right under the cursor */
 .griditem:hover,
 .griditem:focus {
-  background-color: #7471ab; /* Highlight color */
+  background-color: var(--color-3); /* Highlight color */
   border-color: white;
   cursor: pointer;
 }

@@ -133,7 +133,7 @@ document.getElementById("summary-btn").addEventListener("click", function () {
 
 function writeSummary() {
   statusUpdate("Status: Displaying capture analysis summary");
-  highlightTab("summary-btn");
+  //highlightTab("summary-btn");
   if (json_cap == "") {
     statusUpdate("Status: No JSON file loaded, please upload a file first");
   } else {
@@ -163,7 +163,7 @@ function writeSummary() {
 
 // Show host data when data button is clicked
 document.getElementById("data-btn").addEventListener("click", function () {
-  highlightTab("data-btn");
+  //highlightTab("data-btn");
   statusUpdate(
     "Status: Displaying packet information for " + host_filter.value,
   );
@@ -185,15 +185,15 @@ document.getElementById("data-btn").addEventListener("click", function () {
 // Navigation for previous packet
 document.getElementById("prev-btn").addEventListener("click", function () {
   statusUpdate("Status: Displaying capture analysis summary");
-  highlightTab("prev-btn");
-  //hostPacketInfo(host_filter.value);
+  //highlightTab("prev-btn");
+  // hostPacketInfo(host_filter.value);
   handlePacketNavigation("prev-btn");
 });
 
 // Navigation for next packet
 document.getElementById("next-btn").addEventListener("click", function () {
   statusUpdate("Status: Displaying capture analysis summary");
-  highlightTab("next-btn");
+  // highlightTab("next-btn");
   //hostPacketInfo(host_filter.value);
   handlePacketNavigation("next-btn");
 });
