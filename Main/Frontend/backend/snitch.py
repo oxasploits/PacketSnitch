@@ -45,10 +45,14 @@ import numpy as np
 import ollama
 import requests
 import yaml
+from tqdm import tqdm
 import ipaddress
 from bs4 import BeautifulSoup
 from ollama import ResponseError
 from scipy.stats import entropy
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+stop_event = threading.Event()
 
 try:
     import scapy.all as scapy
@@ -67,8 +71,10 @@ summaries = []
 llm_call_lock = threading.Semaphore(nllmthreads)  # Limit concurrent LLM calls
 pprocess_lock = threading.Semaphore(nthreads)
 hostoutfile = "hosts.json"
+cur_dir = os.getcwd()
 script_dir = os.path.dirname(os.path.realpath(__file__)) + "/"
-os.chdir(script_dir)
+# os.chdir(script_dir)
+# os.chdir("/tmp")
 
 
 def llm_query(packet_infos):
@@ -77,22 +83,16 @@ def llm_query(packet_infos):
     Handles retries and concurrency limits. Appends responses to the global summaries list.
     """
     with llm_call_lock:
-        if verbose == 0:
-            print(".", end="", flush=True)
         try:
             if ollama and use_llm and packet_infos:
                 # these are for retreies
                 for resc in range(2):
                     try:
-                        if verbose == 0:
-                            print(".", end="", flush=True)
                         res = ollama.generate(
                             model=llm_model,
                             prompt=f"Tell me what you can about the following network capture (encoded in json, from pcap), its payload, and any interesting or unusual traits... respond with a single paragraph around {response_length} words: {packet_infos}",
                         )
                         if res and "response" in res:
-                            if verbose == 0:
-                                print(".", end="", flush=True)
                             summaries.append(res["response"])
                         else:
                             return {"Summary": ""}
@@ -131,8 +131,7 @@ def get_port_description(port, protocol="tcp"):
     Look up the description of a port and protocol from the ICANN CSV database.
     Returns a string description or an error message.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     if not os.path.exists(icann_csv_path):
         print("Error: ICANN port description database file not found!", file=sys.stderr)
         return "ICANN port description file not found!"
@@ -159,8 +158,7 @@ def reverse_dns_lookup(ip):
     Perform a reverse DNS lookup for the given IP address.
     Returns a dictionary with resolution status and hostnames or error.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     try:
         dat = socket.gethostbyaddr(ip)
         return (
@@ -184,8 +182,7 @@ def get_serv_banner(ip, port, t, hostname):
     Uses cache to avoid redundant lookups. Handles both HTTP and HTTPS.
     Returns a dictionary with banner, page title, and encryption data.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     socket_cert = "Unavailable"
     encrypted_with = "N/A"
     ssl_version = "N/A"
@@ -289,8 +286,7 @@ def get_page_title(url, t):
     Fetch the HTML page title from the given URL with a timeout.
     Returns the title string or "N/A" if unavailable.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     try:
         requests.packages.urllib3.disable_warnings(  # ignore
             category=InsecureRequestWarning  # ignore request warning
@@ -309,8 +305,7 @@ def write_testcase(data, output_dir, pdir, index):
     Write raw packet data to a testcase file in the specified output directory.
     Creates the directory if it does not exist.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     if not os.path.exists(output_dir + "/" + pdir):
         try:
             os.mkdir(output_dir + "/" + pdir)
@@ -330,8 +325,7 @@ def join_info(output_dir, pdir, index, dt_json, pkt_json, host):
     Merge and write packet info and extra info as a JSON file.
     Appends the merged info to the global all_info list.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     out = open(
         output_dir + "/" + pdir + "/pcap.info_packet." + str(index) + ".json", "wb+"
     )
@@ -354,8 +348,7 @@ def by_host(out, final_summary):
     """
     Organize all_info packets by host and write to a summary JSON file.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     for host in all_info:
         if host.get("Host") not in by_host_dict:
             by_host_dict[host.get("Host")] = []
@@ -393,8 +386,7 @@ def safe_decompress(compressed_data):
     Safely decompress gzip or zlib-compressed data.
     Returns the decompressed bytes, or empty bytes on error.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     # Initialize decompressor
     # Handle gzip and zlib formats
     dcomper = zlib.decompressobj(wbits=zlib.MAX_WBITS | 16)
@@ -412,8 +404,7 @@ def get_geoip_info(ip):
     Look up GeoIP information (country, city, postal code, timezone) for an IP address.
     Returns a dictionary with location data or error message.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     if not os.path.exists(geodat_path):
         return {"Location": "Error: GeoIP database not found!"}
     try:
@@ -441,8 +432,6 @@ def get_datatypes(data, dport, srcip, destip, tmout):
     dedata = ""
     decom = {"Decompressed": False}
     for ln in data.splitlines():
-        if verbose == 0:
-            print(".", end="", flush=True)
         descs.append(magic.from_buffer(ln))
         dedata = safe_decompress(ln)
         if dedata and len(dedata) > 0:
@@ -473,8 +462,7 @@ def get_serv(port, protocol="tcp"):
     """
     Return the service name for a given port and protocol using the system's services database.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     try:
         serv_name = socket.getservbyport(port, protocol)
         return serv_name
@@ -487,8 +475,7 @@ def get_traits(data, dport, srcip, destip, timeout):
     Analyze data for entropy, charset, encoding, and network/server traits.
     Returns a dictionary with entropy, network data, length, server info, and character info.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     counts = np.bincount(list(data))
     entop = entropy(counts, base=2)
     data_len = len(data)
@@ -554,8 +541,7 @@ def mac_addr_to_vendor(mac):
     Look up the vendor name for a MAC address using the MAC vendor CSV database.
     Returns the vendor name or an error message.
     """
-    if verbose == 0:
-        print(".", end="", flush=True)
+
     if not os.path.exists(mac_vendors_path):
         print("Error: MAC vendor database file not found!", file=sys.stderr)
         return "Error: MAC vendor file not found!"
@@ -581,6 +567,10 @@ def packet_loop(p, from_p, pcap_path, srcp, dstp, tmout):
     mac_vendor_dst = (
         mac_addr_to_vendor(mac_addr_dst) if mac_addr_dst != "N/A" else "N/A"
     )
+    if not p.haslayer("IP"):
+        return None
+    if not p.haslayer("TCP"):
+        return None
     if p.haslayer("TCP"):
         raw_d = p["TCP"].payload.original
         sport = p["TCP"].sport
@@ -682,50 +672,78 @@ def parse_pcap(pcap_path, srcp, dstp, tmout, from_p, to_p, thread_id):
                 file=sys.stderr,
             )
         packets = scapy.rdpcap(pcap_path)  # type: ignore
+        # if thread_id == 0:
+        #   for p in tqdm(packets[int(from_p) : int(to_p)]):
+        # packet_loop(p, from_p, pcap_path, srcp, dstp, tmout)
+        # else:
         for p in packets[int(from_p) : int(to_p)]:
-            if verbose == 0:
-                print(".", end="", flush=True)
             packet_loop(p, from_p, pcap_path, srcp, dstp, tmout)
 
 
 summaries_batch = []
 
 
-def information_seive(batch_size):
+def info_distiller(batch_size):
     """
-    Batch all_info packets and send them to the LLM for analysis.
-    Stores LLM responses in the summaries list for later use.
+    lines: iterable of input data
+    worker_fn: function that takes a list (batch) and processes it
+    batch_size: num:withber of items per batch
+    max_workers: number of threads
     """
-    # loop over a batch of packets stored in all_info and for every batch_size packets send them to the llm for analysis, where their response will be added to summaries[] for later
-    for pak in range(0, len(all_info), batch_size):
-        if verbose == 0:
-            print(".", end="", flush=True)
-        batch = ",".join(json.dumps(all_info[pak : pak + batch_size]))
-        for backoff in range(batch_size):
-            batch = ",".join(json.dumps(all_info[pak : pak + batch_size - backoff]))
-            if len(batch) > 200000 and backoff == batch_size - 1:
-                batch = batch[:200000]
-        summaries_batch.append(batch)
-        if verbose >= 2 and batch:
-            print(
-                f"LLM analysis for batch {pak} to {pak + batch_size}",
-                file=sys.stderr,
-            )
-    for b in range(len(summaries_batch)):
-        r = threading.Thread(
-            target=llm_query,
-            args=(json.dumps(summaries_batch[b]),),
-            name="LLM Analysis Thread " + str(b),
-        )
-        threads.append(r)
-        r.start()
-    for r in threads:
-        r.join()
-        if verbose >= 2:
-            print("Completed: " + r.name, file=sys.stderr)
+    print("Starting LLM calls...")
+    max_workers = 4
+    jsonstack = all_info
+
+    def chunker(iterable, size):
+        for i in range(0, len(iterable), size):
+            yield iterable[i : i + size]
+
+    batches = list(chunker(jsonstack, batch_size))
+    results = []
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(llm_brief, batch) for batch in batches]
+
+        for future in as_completed(futures):
+            try:
+                results.append(future.result())
+            except Exception as e:
+                print(f"Batch failed: {e}")
+
+    return results
+
+
+def pop_dict_key(obj, key_to_remove):
+    if isinstance(obj, dict):
+        # Create a new dict to avoid modifying while iterating
+        return {
+            k: pop_dict_key(v, key_to_remove)
+            for k, v in obj.items()
+            if k != key_to_remove
+        }
+    elif isinstance(obj, list):
+        return [pop_dict_key(item, key_to_remove) for item in obj]
+    else:
+        return obj
+
+
+def llm_brief(jsonobj):
+    dict = jsonobj
+    final = pop_dict_key(dict, "Raw data")
+    packet_infos = json.dumps(final)
+    res = ollama.generate(
+        model=llm_model,
+        prompt="Provide a concise summary of the following packets, in paragraph form, limited to three paragraphs: "
+        + packet_infos,
+    )
+    if res and "response" in res:
+        summaries.append(res["response"])
+        return res["response"]
 
 
 def start_threading():
+
+    print("Started packet processing threads...")
     """
     Start multiple threads to process packets in parallel.
     Divides the total packets among the configured number of threads.
@@ -736,6 +754,8 @@ def start_threading():
             file=sys.stderr,
         )
         for c in range(nthreads):
+            if stop_event.is_set():
+                break
             step = int(totalp / nthreads)
             start = int(c * step) if c != 0 else 0
             end = int((c + 1) * step) if c != nthreads - 1 else totalp
@@ -751,14 +771,23 @@ def start_threading():
                     c,
                 ),
                 name="Packet Processing Thread " + str(c),
+                daemon=True,
             )
             threads.append(t)
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
+            if t.is_alive():
+                if verbose >= 1:
+                    print(
+                        f"Thread {t.name} is taking too long and will be terminated.",
+                        file=sys.stderr,
+                    )
+                stop_event.set()
+                t.join()
+                break
 
 
-print(script_dir)
 parser = argparse.ArgumentParser(
     prog="snitch.py",
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -831,18 +860,22 @@ try:
     # these are default opts that should work decently
 except Exception:
     config = {
-        "output_dir": "/tmp/testcases",
         "active_recon": True,
         "ollama": {
             "use_llm": True,
+            "llm_brief": True,
             "model": "minimax-m2.5:cloud",
             "response_length": 340,
             "server_call_threads": 5,
             "batch_size": 4,
         },
-        "threads": 8,
+        "threads": 96,
         "final_summary": True,
     }
+pcap_path = args.pcap_file
+if not pcap_path.startswith("/"):
+    print("Give me a full path for pcap.")
+    sys.exit(1)
 geodat_path = script_dir + "common/GeoLite2-City.mmdb"
 mac_vendors_path = script_dir + "common/mac-vendors-export.csv"
 icann_csv_path = script_dir + "common/service-names-port-numbers.csv"
@@ -853,15 +886,16 @@ bs = 0
 totalp = len([p for p in packets if p.haslayer("TCP")])
 if totalp == 0:
     print("No packets found matching the specified port filters.", file=sys.stderr)
-    exit(1)
+    sys.exit(1)
 if "threads" in config and config["threads"]:
     nthreads = config["threads"]
-outd = "testcases"
+outd = cur_dir + "/" + "testcases"
 if args.output and args.output != "testcases":
     outd = args.output
     print("Using output directory: " + args.output, file=sys.stderr)
 if "output_dir" in config:
-    outd = config["output_dir"]
+    outd = cur_dir + "/" + config["output_dir"]
+    print("Using output directory from config: " + outd, file=sys.stderr)
     print("Using output directory from config: " + outd, file=sys.stderr)
 if not args.active_recon:
     if config["active_recon"]:
@@ -875,6 +909,16 @@ if "ollama" in config and config["ollama"].get("model"):
             file=sys.stderr,
         )
         llm_model = config["ollama"]["model"]
+        if config["ollama"]["llm_brief"]:
+            print(
+                "LLM brief generation enabled. Only packet metadata will be sent through the LLM.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                "LLM brief generation disabled. LLM will be used for full data packets!  This will take significantly more time, but will provide more detailed summaries for each packet.",
+                file=sys.stderr,
+            )
     response_length = config["ollama"].get("response_length", 200)
     bs = config["ollama"].get("batch_size", 5)
     use_llm = config["ollama"].get("use_llm", False)
@@ -915,53 +959,54 @@ else:
     ):
         print("Exiting to prevent overwriting files.", file=sys.stderr)
         sys.exit(1)
+try:
+    if os.path.isdir(outd):
+        shutil.rmtree(outd, ignore_errors=True)
+    # Small delay to ensure file system has completed deletions
+    time.sleep(1)
     try:
-        if os.path.isdir(outd):
-            shutil.rmtree(outd, ignore_errors=True)
-        # Small delay to ensure file system has completed deletions
-        time.sleep(1)
+        os.mkdir(outd)
+        final_s = start_threading()
+        #            by_host(outd, final_s)
+    except Exception:
+        final_s = start_threading()
+        # by_host(outd, final_s)
+finally:
+    final_brief = ""
+    final_summary = ""
+    if config["ollama"]["llm_brief"] != True and use_llm:
+        info_distiller(bs)
+    else:
+        all_info_orig = all_info.copy()
+        all_info_new = pop_dict_key(all_info, "Raw data")
+        all_info = all_info_new
+        print("Generating LLM brief for batch of packets...")
+        if all_info:
+            info_distiller(25)
+        all_info = all_info_orig
+
+    if config.get("final_summary", True) and config["ollama"].get("use_llm", True):
+        drilldown = " ".join(summaries) if summaries else "No LLM summaries generated."
         try:
-            os.mkdir(outd)
-            final_s = start_threading()
-            #            by_host(outd, final_s)
-        except Exception:
-            final_s = start_threading()
-            # by_host(outd, final_s)
-    finally:
-        information_seive(bs)
-        if verbose == 0:
-            print(".", end="", flush=True)
-        if config.get("final_summary", True) and config["ollama"].get("use_llm", True):
-            drilldown = (
-                " ".join(summaries) if summaries else "No LLM summaries generated."
+            final_res = ollama.generate(
+                model=llm_model,
+                prompt="Provide a concise summary of the following packets, in paragraph form, limited to three paragraphs: "
+                + drilldown,
             )
-            try:
-                final_res = ollama.generate(
-                    model=llm_model,
-                    prompt="Provide a concise summary of the following packets, in paragraph form, limited to three paragraphs: "
-                    + drilldown[:200000],
-                )
-                if final_res and "response" in final_res:
-                    print(
-                        "\nFinal LLM Summary of Packet Analyses:\n"
-                        + final_res["response"]
-                    )
-                    final_summary = final_res["response"]
-                    # this needs to be here to address the final summary
-                    # needing to be in the by_host output, which is the
-                    # final output of the program
-                    by_host(outd, final_summary)
-                    open(outd + "/final_summary.txt", "w").write(final_summary)
-                    print("\n" + final_summary)
-                    print("\nFinal summary saved to: " + outd + "/final_summary.txt")
-                else:
-                    print(
-                        "\nLLM Final summary generation failed or returned no response."
-                    )
-            except Exception as e:
-                print("\nLLM Final summary generation error: " + str(e))
-        print(
-            "Processing complete. Generated testcases and info files are located in: "
-            + outd,
-            file=sys.stderr,
-        )
+            final_summary = final_res["response"]
+            # this needs to be here to address the final summary
+            # needing to be in the by_host output, which is the
+            # final output of the program
+            by_host(outd, final_summary)
+            open(outd + "/final_summary.txt", "w").write(final_summary)
+            print("\n" + final_summary)
+            print("\nFinal summary saved to: " + outd + "/final_summary.txt")
+
+        except Exception as e:
+            print("\nLLM Final summary generation error: " + str(e))
+    print(
+        "Processing complete. Generated testcases and info files are located in: "
+        + outd,
+        file=sys.stderr,
+    )
+    sys.exit(0)

@@ -1,9 +1,12 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
-
+const process = require("process");
 let mainWindow;
 const filePath = path.join("/tmp/testcases/", "hosts.json");
+fs.rmdir("/tmp/testcases", { recursive: true }, (err) => {
+  if (err) console.error(err);
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -23,6 +26,7 @@ app.whenReady().then(() => {
   let fileSent = false;
   // this function handles polling for the existence of the json
   require("./back-comm");
+  // remove the tmp directory on startup to ensure we have a clean directory
   // if a pcap file is opened, then we start polling for the
   //json file to be created by the backend, and send it to the
   // back-comm process to start the snitch.py backend.
