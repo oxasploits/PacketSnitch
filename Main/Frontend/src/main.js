@@ -1,20 +1,16 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
-const process = require("process");
-const { exec } = require('child_process');
-
+const { exec } = require("child_process");
 const os = require("os");
 const platform = os.platform();
-const testcaseDir = path.join(os.tmpdir(), "testcases")
+const testcaseDir = path.join(os.tmpdir(), "testcases");
 let mainWindow;
-hostsFilePath = "";
 hostsFilePath = path.join(testcaseDir, "hosts.json");
-
+// make sure we have a fresh temp dir
 fs.rmdir(testcaseDir, { recursive: true }, (err) => {
-    if (err) console.error(err);
-  });
-
+  if (err) console.error(err);
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -31,13 +27,10 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+  console.log("App ready, waiting for file selection...");
   let fileSent = false;
-  // this function handles polling for the existence of the json
+  // start the process that listens for the file selection and runs the backend command
   require("./back-comm");
-  // remove the tmp directory on startup to ensure we have a clean directory
-  // if a pcap file is opened, then we start polling for the
-  //json file to be created by the backend, and send it to the
-  // back-comm process to start the snitch.py backend.
   ipcMain.handle("select-file", async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       properties: ["openFile"],
@@ -56,18 +49,17 @@ app.whenReady().then(() => {
   });
 });
 
-
-
-app.on('before-quit', () => {
+app.on("before-quit", () => {
   // make sure the backend snitch process dies!
   console.log("Killing backend proc...");
-  exec('taskkill /IM snitch.exe /T /F', (err) => {
-  if (err) console.error(err);
+  if (platform === "win32") {
+    exec("taskkill /IM snitch.exe /T /F", (err) => {
+      if (err) console.error(err);
+    });
+  }
+  if (platform === "linux") {
+    exec('pkill -f "snitch"', (err) => {
+      if (err) console.error(err);
+    });
+  }
 });
-
-exec('pkill -f "snitch"', (err) => {
-  if (err) console.error(err);
-});
-
-});
-

@@ -123,7 +123,6 @@ function highlightTab(tabId) {
 // Show summary when summary button is clicked
 document.getElementById("summary-btn").addEventListener("click", function () {
   //  document.getElementById("welcome").style.display = "The Analysis:";
-  document.getElementById("welcome").style.display = "block";
   writeSummary();
 });
 
@@ -146,6 +145,7 @@ function writeSummary() {
     document.getElementById("packetInfoPane").style.display = "none";
     document.getElementById("packetPayloadPane").style.display = "none";
     document.getElementById("summary_box").style.display = "none";
+    document.getElementById("welcome").style.display = "block";
     sbp.innerHTML = final_summary;
     final_summary = "";
     if (firstRun) {
@@ -616,10 +616,12 @@ window.jsonapi.onJsonData((jsonData) => {
   processFile(
     new File([jsonData], "capture.json", { type: "application/json" }),
   );
+  document.getElementById("loading-container").style.display = "none";
 });
 
 // here we create the backend process and hook it to the handler
 function runSnitch(file) {
+  document.getElementById("loading-container").style.display = "block";
   window.snitchapi.runBackendCommand(file).then((output) => {
     console.log("Backend output:", output);
   });
@@ -631,4 +633,5 @@ onload = function () {
   document.getElementById("packetPayloadPane").style.display = "none";
   document.getElementById("rightside").style.display = "none";
   document.getElementById("leftside").style.display = "none";
+  document.getElementById("loading-container").style.display = "none";
 };
