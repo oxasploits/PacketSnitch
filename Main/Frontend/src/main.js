@@ -2,24 +2,19 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const process = require("process");
-let mainWindow;
-filePath = "";
-const os = require("os");
+const { exec } = require('child_process');
 
+const os = require("os");
 const platform = os.platform();
-if (platform === "linux") {
-  fs.rmdir("/tmp/testcases", { recursive: true }, (err) => {
+const testcaseDir = path.join(os.tmpdir(), "testcases")
+let mainWindow;
+hostsFilePath = "";
+hostsFilePath = path.join(testcaseDir, "hosts.json");
+
+fs.rmdir(testcaseDir, { recursive: true }, (err) => {
     if (err) console.error(err);
   });
-  filePath = path.join("/tmp/testcases/", "hosts.json");
-} else if (platform === "win32") {
-  fs.rmdir("C:\\Windows\\Temp\\testcases", { recursive: true }, (err) => {
-    if (err) console.error(err);
-  });
-  filePath = "C:\\Windows\\Temp\\testcases\\hosts.json";
-} else {
-  console.log("Err, OS not supported.");
-}
+
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -50,9 +45,9 @@ app.whenReady().then(() => {
     if (canceled) return null;
     console.log("Accepted pcapng.. Checking for json existence...");
     setInterval(() => {
-      if (!fileSent && fs.existsSync(filePath)) {
+      if (!fileSent && fs.existsSync(hostsFilePath)) {
         // here we read the file in
-        const data = fs.readFileSync(filePath, "utf8");
+        const data = fs.readFileSync(hostsFilePath, "utf8");
         mainWindow.webContents.send("json-data", data);
         fileSent = true; // Prevent sending multiple times
       }
@@ -60,3 +55,19 @@ app.whenReady().then(() => {
     return filePaths[0];
   });
 });
+
+
+
+app.on('before-quit', () => {
+  // make sure the backend snitch process dies!
+  console.log("Killing backend proc...");
+  exec('taskkill /IM snitch.exe /T /F', (err) => {
+  if (err) console.error(err);
+});
+
+exec('pkill -f "snitch"', (err) => {
+  if (err) console.error(err);
+});
+
+});
+
