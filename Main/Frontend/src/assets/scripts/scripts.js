@@ -491,11 +491,49 @@ function infoPanel() {
   tcplayrelen = pinfo["TCP"]["TCP layer length"];
   wirelen = pinfo["TCP"]["Wire length"];
   payloadlen = pinfo["Raw data"]["Payload Length"];
+  sslcert = "";
+  sslver = "";
+  sslalgos = "";
+  if (einfo["Traits"]["Server Info"]["Encryption Data"] == "N/A") {
+    sslcert = "Not encrypted";
+    sslver = "Not encrypted";
+    sslalgos = "";
+  } else {
+    sslcert = einfo["Traits"]["Server Info"]["Encryption Data"]["SSL Cert"];
+    sslver = einfo["Traits"]["Server Info"]["Encryption Data"]["SSL Version"];
+    sslalgos = einfo["Traits"]["Server Info"]["Encryption Data"][
+      "Encrypted With"
+    ].join("<br>Extra algo info: ");
+  }
+  decompressed = einfo["Decompressed"]["Decompressed"];
+  if (einfo["Traits"]["Network Data"]["Hostnames"]["Hostnames"] == undefined) {
+    dnshosts = "localhost";
+  } else {
+    dnshosts =
+      "localhost<br>" +
+      einfo["Traits"]["Network Data"]["Hostnames"]["Hostnames"].join("<br>");
+  }
+  pagetitle = einfo["Traits"]["Server Info"]["Page Title"];
+  encrypted = einfo["Traits"]["Server Info"]["Encrypted"];
+  proto = einfo["Traits"]["Network Data"]["Port Protcol"];
+  protod = einfo["Traits"]["Network Data"]["Port Description"];
   snetclass = einfo["Traits"]["Network Data"]["Source IP"]["Class"];
   dnetclass = einfo["Traits"]["Network Data"]["Destination IP"]["Class"];
   document.getElementById("sidedatatable").textContent = "";
   document.getElementById("protoInfoSrc").textContent = "Source";
   document.getElementById("protoInfoDest").textContent = "Destination";
+  document.getElementById("comp").textContent = decompressed;
+  //  wirelen
+  document.getElementById("website").textContent = pagetitle;
+  document.getElementById("crypt").textContent = encrypted;
+  const dnsCollapsedList = dnshosts.replace(/(<br\s*\/?>\s*)+/gi, "<br>");
+  document.getElementById("dns").innerHTML = dnsCollapsedList;
+  document.getElementById("crypt").innerHTML = sslcert
+    ? "Encrypted with: " + sslver + "<br>" + sslalgos
+    : "Not Encrypted";
+  document.getElementById("protocols").innerHTML =
+    "Protocol Name: " + proto + "<br>Protocol Description: " + protod;
+
   const chkd = [
     { name: "IP Checksum \u060F", value: ipchksum },
     { name: "TCP Checksum \u2643", value: tcpchksum },

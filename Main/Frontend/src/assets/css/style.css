@@ -304,6 +304,16 @@ strong {
   width: 98%;
 }
 
+#active-recon {
+  background-color: var(--color-7);
+  position: relative;
+  width: 340px;
+  margin-top: -513px;
+  margin-left: 635px;
+  border: 1px solid var(--color-3);
+  height: 500px;
+}
+
 #summary_box {
   display: block;
   border: 8px solid var(--color-3);
@@ -376,6 +386,7 @@ strong {
   margin-top: 20px;
   width: 600px;
   background-color: var(--color-7);
+  height: 300px;
 }
 
 .sidebar-header {
