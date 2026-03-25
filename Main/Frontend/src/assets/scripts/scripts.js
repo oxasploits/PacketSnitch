@@ -526,11 +526,16 @@ function infoPanel() {
     sslver = "Not encrypted";
     sslalgos = "";
   } else {
-    sslcert = einfo["Traits"]["Server Info"]["Encryption Data"]["SSL Cert"];
-    sslver = einfo["Traits"]["Server Info"]["Encryption Data"]["SSL Version"];
-    sslalgos = einfo["Traits"]["Server Info"]["Encryption Data"][
-      "Encrypted With"
-    ].join("<br>Extra algo info: ");
+    sslcert =
+      einfo["Traits"]["Server Info"]["Encryption Data"]["SSL Cert"] ??
+      "Not available";
+    sslver =
+      einfo["Traits"]["Server Info"]["Encryption Data"]["SSL Version"] ??
+      "Not available";
+    sslalgos =
+      einfo["Traits"]["Server Info"]["Encryption Data"]["Encrypted With"].join(
+        "<br>Extra algo info: ",
+      ) ?? "No algorithm information available";
   }
   decompressed = einfo["Decompressed"]["Decompressed"];
   if (einfo["Traits"]["Network Data"]["Hostnames"]["Hostnames"] == undefined) {
