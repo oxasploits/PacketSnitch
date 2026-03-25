@@ -304,6 +304,11 @@ strong {
   width: 98%;
 }
 
+.active {
+  padding: 5px;
+  word-break: break-word;
+}
+
 #active-recon {
   background-color: var(--color-7);
   position: relative;
@@ -311,7 +316,8 @@ strong {
   margin-top: -513px;
   margin-left: 635px;
   border: 1px solid var(--color-3);
-  height: 500px;
+  height: 491px;
+  color: white;
 }
 
 #summary_box {
@@ -414,6 +420,14 @@ strong {
   margin-left: 15px;
 }
 #encoding {
+  font-size: 14px;
+  justify-content: left;
+  text-align: left;
+  color: var(--color-6);
+  margin-top: 10px;
+  margin-left: 15px;
+}
+#language {
   font-size: 14px;
   justify-content: left;
   text-align: left;

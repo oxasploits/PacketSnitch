@@ -309,17 +309,38 @@ function populateDataTypes() {
   mtype = document.getElementById("mime-type");
   chars = document.getElementById("charset");
   encode = document.getElementById("encoding");
+  language = document.getElementById("language");
+  encode.textContent = "";
+  language.textContent = "";
+  encoding = "";
+  lang = "";
   packetsForHost = packets["Host"][host_filter.value];
   charset = JSON.parse(
     JSON.stringify(
       packetsForHost[index]["Extra Info"]["Traits"]["Characters"]["Charset"],
     ),
   );
-  encoding = JSON.parse(
-    JSON.stringify(
-      packetsForHost[index]["Extra Info"]["Traits"]["Characters"]["Encoding"],
-    ),
-  );
+  if (
+    packetsForHost[index]["Extra Info"]["Traits"]["Characters"]["Encoding]"] ==
+    "Unavailble for high entropy data"
+  ) {
+    encoding = JSON.parse(
+      JSON.stringify(
+        packetsForHost[index]["Extra Info"]["Traits"]["Characters"]["Encoding"],
+      ),
+    );
+  } else {
+    encoding = JSON.stringify(
+      packetsForHost[index]["Extra Info"]["Traits"]["Characters"]["Encoding"][
+        "encoding"
+      ],
+    );
+    lang = JSON.stringify(
+      packetsForHost[index]["Extra Info"]["Traits"]["Characters"]["Encoding"][
+        "language"
+      ],
+    );
+  }
 
   mimet = JSON.parse(
     JSON.stringify(packetsForHost[index]["Extra Info"]["MIME Type"]),
@@ -330,9 +351,15 @@ function populateDataTypes() {
   mtype.textContent = "\u03B1 MIME type: " + mimet;
   charset = charset == "" ? "Unknown" : charset;
   encoding = encoding == "" ? "Unknown" : encoding;
-  chars.textContent = "\u2202 Payload Charset: " + charset;
-  encode.textContent = "\u0950 Payload Encoding: " + encoding;
-
+  //  lang = lang == "" ? "Unknown" : lang;
+  //  chars.textContent = "\u2202 Payload Charset: " + charset;
+  if (encoding !== undefined) {
+    encode.textContent =
+      "\u0950 Payload Encoding: " + encoding.replace(/"/g, "");
+  }
+  if (lang !== undefined) {
+    language.textContent = "\u03C9 Payload Language: " + lang.replace(/"/g, "");
+  }
   items.forEach((item) => {
     const listItem = document.createElement("li");
     listItem.textContent = item;
@@ -522,18 +549,38 @@ function infoPanel() {
   document.getElementById("sidedatatable").textContent = "";
   document.getElementById("protoInfoSrc").textContent = "Source";
   document.getElementById("protoInfoDest").textContent = "Destination";
-  document.getElementById("comp").textContent = decompressed;
+  if (decompressed == false || decompressed == undefined) {
+    document.getElementById("comp").textContent =
+      "Not Compressed, or format not recognized";
+  } else {
+    document.getElementById("comp").textContent = decompressed;
+  }
   //  wirelen
-  document.getElementById("website").textContent = pagetitle;
+  if (pagetitle == undefined || pagetitle == "N/A") {
+    document.getElementById("website").textContent =
+      "Not available for this server";
+  } else {
+    document.getElementById("website").textContent = pagetitle;
+  }
   document.getElementById("crypt").textContent = encrypted;
   const dnsCollapsedList = dnshosts.replace(/(<br\s*\/?>\s*)+/gi, "<br>");
   document.getElementById("dns").innerHTML = dnsCollapsedList;
-  document.getElementById("crypt").innerHTML = sslcert
-    ? "Encrypted with: " + sslver + "<br>" + sslalgos
-    : "Not Encrypted";
-  document.getElementById("protocols").innerHTML =
-    "Protocol Name: " + proto + "<br>Protocol Description: " + protod;
+  if (sslalgos == undefined || sslalgos == "") {
+    //document.getElementById("crypt").innerHTML = sslcert
+    //  ? "Encrypted with: " + sslver + "<br>" + sslalgos
+    //  : "Not Encrypted";
+    document.getElementById("crypt").innerHTML = "Not encrypted";
+  } else {
+    document.getElementById("crypt").innerHTML =
+      "Encrypted with: " + sslver + "<br>" + sslalgos;
+  }
 
+  if (proto == "Unknown") {
+    document.getElementById("protocols").innerHTML = "Unknown";
+  } else {
+    document.getElementById("protocols").innerHTML =
+      "Protocol Name: " + proto + "<br>Protocol Description: " + protod;
+  }
   const chkd = [
     { name: "IP Checksum \u060F", value: ipchksum },
     { name: "TCP Checksum \u2643", value: tcpchksum },
