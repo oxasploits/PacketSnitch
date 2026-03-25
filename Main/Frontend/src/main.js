@@ -6,6 +6,11 @@ const os = require("os");
 const platform = os.platform();
 const testcaseDir = path.join(os.tmpdir(), "testcases");
 let mainWindow;
+
+if (require("electron-squirrel-startup")) {
+  app.quit();
+}
+
 hostsFilePath = path.join(testcaseDir, "hosts.json");
 // make sure we have a fresh temp dir
 fs.rmdir(testcaseDir, { recursive: true }, (err) => {
