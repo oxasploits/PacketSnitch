@@ -78,7 +78,7 @@ function processFile(file) {
     json_cap = JSON.stringify(packets, null, 2);
     final_summary = packets["Final Summary"];
     if (final_summary == undefined) {
-      main_panel.textContent = "Error: Final Summary not found in JSON.";
+      doError("Final Summary not found in JSON!");
       statusUpdate("Status: Error: Final Summary not found in JSON.");
       return;
     }
@@ -176,7 +176,6 @@ function writeSummary() {
     container = document.getElementById("main");
     document.getElementById("packetInfoPane").style.display = "none";
     document.getElementById("packetPayloadPane").style.display = "none";
-    document.getElementById("summary_box").style.display = "none";
     document.getElementById("summary_content").textContent = final_summary;
     document.getElementById("summary_box").style.display = "block";
     fileLoaded(true);
@@ -195,6 +194,7 @@ function initializeDataView() {
   );
   if (json_cap == "") {
     statusUpdate("Status: No JSON file loaded, please upload a file first");
+    doError("No file loaded! Upload one of JSON or PCAP first!");
   } else {
     document.getElementById("prev-btn").style.display = "block";
     document.getElementById("next-btn").style.display = "block";
@@ -236,6 +236,7 @@ document
     bookmark["Packet"] = index;
     if (host == undefined || index == undefined) {
       statusUpdate("Invalid bookmark selection, missing host or packet index");
+      doError("Invalid bookmark selection, missing host or packet index!");
     } else {
       document.getElementById("target_hosts").value = host;
     }
@@ -279,6 +280,7 @@ function handlePacketNavigation(btn, bookmark) {
   if (btn === "bookmark") {
     if (bookmark["Host"] == undefined || bookmark["Packet"] == undefined) {
       statusUpdate("Status: Invalid bookmark data, reverting to first packet");
+      doError("Invalid bookmark data, missing host or packet index!");
       handlePacketNavigation("first-load");
     } else {
       index = bookmark["Packet"];
@@ -595,6 +597,12 @@ function infoPanel() {
       ) ?? "No algorithm information available";
   }
   decompressed = einfo["Decompressed"]["Decompressed"];
+  function removeIPs(list) {
+    const ipRegex =
+      /\b((25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\b/;
+    return list.filter((item) => !ipRegex.test(item));
+  }
+
   if (einfo["Traits"]["Network Data"]["Hostnames"]["Hostnames"] == undefined) {
     dnshosts = "localhost";
   } else {
@@ -602,6 +610,9 @@ function infoPanel() {
       "localhost<br>" +
       einfo["Traits"]["Network Data"]["Hostnames"]["Hostnames"].join("<br>");
   }
+  newdnshosts = removeIPs(dnshosts.split("<br>")).join("<br>");
+  dnshosts = newdnshosts == "" ? "localhost" : newdnshosts;
+
   pagetitle = einfo["Traits"]["Server Info"]["Page Title"];
   encrypted = einfo["Traits"]["Server Info"]["Encrypted"];
   proto = einfo["Traits"]["Network Data"]["Port Protcol"];
@@ -785,6 +796,7 @@ function doError(message) {
   console.error("Error from backend:", message);
   loadcontainer = document.getElementById("loading-container");
   econtainer = document.getElementById("error-container");
+  document.getElementById("summary_content").textContent = "";
   loadcontainer.style.display = "none";
   econtainer.style.display = "block";
   econtainer.textContent = message;
@@ -793,6 +805,14 @@ function doError(message) {
     loadcontainer.style.display = "none";
   });
 }
+
+window.onerror = (message, source, lineno, colno, error) => {
+  doError(message + " at " + source + ":" + lineno + ":" + colno);
+};
+
+window.onunhandledrejection = (event) => {
+  doError("Unhandled promise error! " + event.reason);
+};
 
 window.api.onError((msg) => {
   console.error("Error from backend:", msg);
