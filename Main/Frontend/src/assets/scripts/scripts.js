@@ -548,7 +548,10 @@ function infoPanel() {
   sslcert = "";
   sslver = "";
   sslalgos = "";
-  if (einfo["Traits"]["Server Info"]["Encryption Data"] == "N/A") {
+  if (
+    einfo["Traits"]["Server Info"]["Encryption Data"] == "N/A" ||
+    einfo["Traits"]["Server Info"].hasOwnProperty("Encryption Data") == false
+  ) {
     sslcert = "Not encrypted";
     sslver = "Not encrypted";
     sslalgos = "";
@@ -594,7 +597,7 @@ function infoPanel() {
   } else {
     document.getElementById("website").textContent = pagetitle;
   }
-  document.getElementById("crypt").textContent = encrypted;
+  //document.getElementById("crypt").textContent = encrypted;
   const dnsCollapsedList = dnshosts.replace(/(<br\s*\/?>\s*)+/gi, "<br>");
   document.getElementById("dns").innerHTML = dnsCollapsedList;
   if (sslalgos == undefined || sslalgos == "") {
@@ -759,7 +762,3 @@ onload = function () {
   document.getElementById("leftside").style.display = "none";
   document.getElementById("loading-container").style.display = "none";
 };
-
-//document.getElementById("error-container").style.display = "block";
-//document.getElementById("error-container").innerHTML =
-// "Please select a JSON file to analyze.";
