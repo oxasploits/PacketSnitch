@@ -13,7 +13,6 @@ ipcMain.handle("run-backend-command", async (event, filename) => {
     ? path.join(__dirname, "../..")
     : process.resourcesPath;
   let appPath;
-  let backendChild;
 
   if (platform === "win32") {
     appPath = path.join(basePath, "\\backend\\snitch.exe");
@@ -36,7 +35,7 @@ ipcMain.handle("run-backend-command", async (event, filename) => {
   }
 
   return new Promise((resolve, reject) => {
-    backendChild = exec(command, (error, stdout, stderr) => {
+    exec(command, (error, stdout, stderr) => {
       resolve(stdout);
       console.log("Backend output:", stdout);
       console.log("Backend error output:", stderr);

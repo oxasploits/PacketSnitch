@@ -56,13 +56,33 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: rgba(65, 63, 110, 0.3);
+  background-color: rgba(22, 26, 43, 0.3);
   padding: 20px;
   border-radius: 10px;
   text-align: center;
   z-index: 1000;
   width: 400px;
   display: none;
+}
+
+.loading::after {
+  content: ".";
+  animation: dots 1.5s steps(3, end) infinite;
+}
+
+@keyframes dots {
+  0% {
+    content: ".";
+  }
+  33% {
+    content: "..";
+  }
+  66% {
+    content: "...";
+  }
+  100% {
+    content: ".";
+  }
 }
 
 #loading {

@@ -102,6 +102,7 @@ function processFile(file) {
   };
   reader.onerror = (error) => {
     status.textContent = "Status: Error reading file: " + error;
+    doError("Error reading file!");
   };
   reader.readAsText(file);
 }
@@ -178,6 +179,7 @@ function writeSummary() {
     document.getElementById("summary_box").style.display = "none";
     document.getElementById("summary_content").textContent = final_summary;
     document.getElementById("summary_box").style.display = "block";
+    fileLoaded(true);
   }
 }
 
@@ -242,14 +244,18 @@ document
 
 // Add current packet as a bookmark
 document.getElementById("setBookmark").addEventListener("click", function () {
-  curPacket = document.getElementById("host_filter").value + ":" + index;
+  if (document.getElementById("host_filter").value == "") {
+    return;
+  } else {
+    curPacket = document.getElementById("host_filter").value + ":" + index;
 
-  if (!bookmarkList.includes(curPacket)) {
-    if (curPacket != undefined) {
-      bookmarkList.push(curPacket);
-      document
-        .getElementById("selectBookmark")
-        .appendChild(new Option(curPacket, curPacket));
+    if (!bookmarkList.includes(curPacket)) {
+      if (curPacket != undefined) {
+        bookmarkList.push(curPacket);
+        document
+          .getElementById("selectBookmark")
+          .appendChild(new Option(curPacket, curPacket));
+      }
     }
   }
 });
@@ -284,6 +290,7 @@ function handlePacketNavigation(btn, bookmark) {
   }
   if (!packetsForHost || packetsForHost.length === 0) {
     statusUpdate("Status: No packets found for this host");
+    return;
   } else {
     if (btn === "first-load") {
       index = 0;
@@ -323,6 +330,8 @@ function handlePacketNavigation(btn, bookmark) {
     // through it with next and prev buttons
     if (packetsForHost == undefined || packetsForHost[index] == undefined) {
       statusUpdate("Status: No packet information found for this host");
+      doError("No packet information found for this host!");
+      return;
     } else {
       ip = document.getElementById("host_filter").value;
       packetDecoded = JSON.parse(JSON.stringify(packetsForHost[index]));
@@ -398,8 +407,6 @@ function populateDataTypes() {
   mtype.textContent = "\u03B1 MIME type: " + mimet;
   charset = charset == "" ? "Unknown" : charset;
   encoding = encoding == "" ? "Unknown" : encoding;
-  //  lang = lang == "" ? "Unknown" : lang;
-  //  chars.textContent = "\u2202 Payload Charset: " + charset;
   if (encoding !== undefined) {
     encode.textContent =
       "\u0950 Payload Encoding: " + encoding.replace(/"/g, "");
@@ -755,6 +762,7 @@ function infoPanel() {
 window.jsonapi.onJsonData((jsonData) => {
   document.getElementById("loading-container").style.display = "block";
   document.getElementById("error-container").style.display = "none";
+  statusUpdate("Loaded data from backend, processing...");
   processFile(
     new File([jsonData], "capture.json", { type: "application/json" }),
   );
@@ -764,6 +772,10 @@ window.jsonapi.onJsonData((jsonData) => {
 // here we create the backend process and hook it to the handler
 function runSnitch(file) {
   document.getElementById("loading-container").style.display = "block";
+  document.getElementById("summary_content").innerHTML =
+    '<span id="loaderdots" class="loading">Loading</span>';
+  document.getElementById("status").textContent =
+    "Status: Running snitch backend, this may take a few minutes...";
   document.getElementById("error-container").style.display = "none";
 
   const ret = window.snitchapi.runBackendCommand(file).then((output) => {});
@@ -771,10 +783,15 @@ function runSnitch(file) {
 
 function doError(message) {
   console.error("Error from backend:", message);
-  document.getElementById("loading-container").style.display = "none";
-  document.getElementById("error-container").style.display = "block";
-  document.getElementById("error-container").textContent = message;
-  fileLoaded(false);
+  loadcontainer = document.getElementById("loading-container");
+  econtainer = document.getElementById("error-container");
+  loadcontainer.style.display = "none";
+  econtainer.style.display = "block";
+  econtainer.textContent = message;
+  econtainer.addEventListener("click", () => {
+    econtainer.style.display = "none";
+    loadcontainer.style.display = "none";
+  });
 }
 
 window.api.onError((msg) => {

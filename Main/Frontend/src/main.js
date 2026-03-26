@@ -13,7 +13,7 @@ if (require("electron-squirrel-startup")) {
 
 hostsFilePath = path.join(testcaseDir, "hosts.json");
 // make sure we have a fresh temp dir
-fs.rmdir(testcaseDir, { recursive: true }, (err) => {
+fs.rmSync(testcaseDir, { recursive: true, force: true }, (err) => {
   if (err) console.error(err);
 });
 
