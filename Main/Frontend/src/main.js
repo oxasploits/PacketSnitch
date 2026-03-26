@@ -6,7 +6,7 @@ const os = require("os");
 const platform = os.platform();
 const testcaseDir = path.join(os.tmpdir(), "testcases");
 let mainWindow;
-
+let backendLoaded = false;
 if (require("electron-squirrel-startup")) {
   app.quit();
 }
@@ -17,7 +17,7 @@ fs.rmdir(testcaseDir, { recursive: true }, (err) => {
   if (err) console.error(err);
 });
 
-function killProcess() {
+function killBackendProcess() {
   console.log("Killing backend proc...");
   if (platform === "win32") {
     exec("taskkill /IM snitch.exe /T /F", (err) => {
@@ -25,7 +25,21 @@ function killProcess() {
     });
   }
   if (platform === "linux") {
-    exec('pkill -f "snitch"', (err) => {
+    exec('pkill -f "testcases"', (err) => {
+      if (err) console.error(err);
+    });
+  }
+}
+
+function killProcess() {
+  console.log("Killing backend proc...");
+  if (platform === "win32") {
+    exec("taskkill /IM packetsnitch.exe /T /F", (err) => {
+      if (err) console.error(err);
+    });
+  }
+  if (platform === "linux") {
+    exec('pkill -f "packetsnitch"', (err) => {
       if (err) console.error(err);
     });
   }
@@ -68,6 +82,7 @@ app.whenReady().then(() => {
       });
       if (canceled) return null;
       console.log("Accepted pcapng.. Checking for json existence...");
+      backendLoaded = true;
       setInterval(() => {
         if (!fileSent && fs.existsSync(hostsFilePath)) {
           // here we read the file in
@@ -95,5 +110,7 @@ function checkOllama() {
 
 app.on("before-quit", () => {
   // make sure the backend snitch process dies!
-  killProcess();
+  if (backendLoaded) {
+    killBackendProcess();
+  }
 });

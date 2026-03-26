@@ -44,7 +44,11 @@ ipcMain.handle("run-backend-command", async (event, filename) => {
         sendError("Backend LLM generation error!");
       }
       if (error) {
-        sendError("Backend execution error!");
+        if (stderr.includes("supported capture file")) {
+          sendError("Unsupported file format!");
+        } else {
+          sendError("Backend execution error!");
+        }
       }
     });
 

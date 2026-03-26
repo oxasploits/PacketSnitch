@@ -31,9 +31,33 @@ document
   .getElementById("pcap-filename")
   .addEventListener("click", function (event) {
     window.getfileapi.selectFile().then((filePath) => {
-      if (filePath) runSnitch(filePath);
+      if (filePath) {
+        runSnitch(filePath);
+      }
     });
   });
+
+function isValidJSON(str) {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function fileLoaded(loaded) {
+  if (loaded) {
+    document.getElementById("tab-btns").style.opacity = "1";
+    document.getElementById("prev-btn").style.opacity = "1";
+    document.getElementById("next-btn").style.opacity = "1";
+    document.getElementById("json-lab").style.display = "none";
+    document.getElementById("pcap-lab").style.display = "none";
+  } else {
+    document.getElementById("json-lab").style.display = "block";
+    document.getElementById("pcap-lab").style.display = "block";
+  }
+}
 
 /**
  * Reads and parses the JSON file, updates UI and state.
@@ -41,9 +65,15 @@ document
 function processFile(file) {
   const reader = new FileReader();
   reader.onload = (event) => {
-    document.getElementById("json-lab").style.display = "none";
-    document.getElementById("pcap-lab").style.display = "none";
     const main_panel = document.getElementById("main");
+    if (isValidJSON(event.target.result) == false) {
+      console.log("Invalid JSON file");
+      doError("Invalid JSON file, please upload a valid JSON capture!");
+      fileLoaded(false);
+      return;
+    }
+    fileLoaded(true);
+    document.getElementById("error-container").style.display = "none";
     packets = JSON.parse(event.target.result);
     json_cap = JSON.stringify(packets, null, 2);
     final_summary = packets["Final Summary"];
@@ -64,7 +94,9 @@ function processFile(file) {
         newhost.value = host;
         targets_list.appendChild(newhost);
         loaded = true;
+
         writeSummary();
+        initializeDataView();
       }
     }
   };
@@ -141,33 +173,21 @@ function writeSummary() {
     statusUpdate("Status: No JSON file loaded, please upload a file first");
   } else {
     container = document.getElementById("main");
-    sbp = document.createElement("div");
-    sbp.setAttribute("id", "summary_box");
-    if (document.getElementById("summary_box") == undefined) {
-      container.appendChild(sbp);
-    }
     document.getElementById("packetInfoPane").style.display = "none";
     document.getElementById("packetPayloadPane").style.display = "none";
     document.getElementById("summary_box").style.display = "none";
-    document.getElementById("welcome").style.display = "block";
-    sbp.innerHTML = final_summary;
-    final_summary = "";
-    if (firstRun) {
-      document.getElementById("welcome").innerHTML = "Now Select a packet!";
-      firstRun = false;
-      setTimeout(() => {
-        document.getElementById("summary_box").style.display = "block";
-        //     document.getElementById("welcome").innerHTML = "The Analysis:";
-      }, 8000);
-    } else {
-      document.getElementById("summary_box").style.display = "block";
-    }
+    document.getElementById("summary_content").textContent = final_summary;
+    document.getElementById("summary_box").style.display = "block";
   }
 }
 
 // Show host data when data button is clicked
 document.getElementById("data-btn").addEventListener("click", function () {
   //highlightTab("data-btn");
+  initializeDataView();
+});
+
+function initializeDataView() {
   statusUpdate(
     "Status: Displaying packet information for " + host_filter.value,
   );
@@ -184,7 +204,7 @@ document.getElementById("data-btn").addEventListener("click", function () {
 
     handlePacketNavigation("first-load");
   }
-});
+}
 
 // Navigation for previous packet
 document.getElementById("prev-btn").addEventListener("click", function () {
@@ -734,6 +754,7 @@ function infoPanel() {
 // when the main.js returns our json data from snitch.py
 window.jsonapi.onJsonData((jsonData) => {
   document.getElementById("loading-container").style.display = "block";
+  document.getElementById("error-container").style.display = "none";
   processFile(
     new File([jsonData], "capture.json", { type: "application/json" }),
   );
@@ -743,15 +764,23 @@ window.jsonapi.onJsonData((jsonData) => {
 // here we create the backend process and hook it to the handler
 function runSnitch(file) {
   document.getElementById("loading-container").style.display = "block";
+  document.getElementById("error-container").style.display = "none";
+
   const ret = window.snitchapi.runBackendCommand(file).then((output) => {});
+}
+
+function doError(message) {
+  console.error("Error from backend:", message);
+  document.getElementById("loading-container").style.display = "none";
+  document.getElementById("error-container").style.display = "block";
+  document.getElementById("error-container").textContent = message;
+  fileLoaded(false);
 }
 
 window.api.onError((msg) => {
   console.error("Error from backend:", msg);
-  document.getElementById("loading-container").style.display = "none";
-  document.getElementById("error-container").style.display = "block";
-  document.getElementById("error-container").textContent = msg;
   // Show alert or UI message
+  doError(msg);
 });
 
 // On page load, hide packet info and payload panes
