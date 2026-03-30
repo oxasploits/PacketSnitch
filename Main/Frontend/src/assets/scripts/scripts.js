@@ -15,6 +15,7 @@ let bookmark = {}; // Current bookmark obje22
 let firstRun = true; // Flag for first run to initialize hex grid
 let loaded = false;
 let jsonOfPackets;
+let filteredPackets;
 popHexGrid("00".repeat(256));
 // Set up file upload handler for JSON capture
 document
@@ -280,6 +281,17 @@ function handlePacketNavigation(btn, bookmark) {
     handlePacketNavigation("first-load");
   }
   packetsForHost = packets["Host"][host_filter.value];
+  if (btn === "filtered") {
+    packetsForHost = [];
+    for (fpacket in filteredPackets) {
+      pak = 0;
+      for (pak in filteredPackets[fpacket]) {
+        packetsForHost.push(filteredPackets[fpacket][pak]);
+        host_filter.value = packetsForHost[0]["Packet Info"]["IP"]["Source IP"];
+      }
+    }
+    index = 0;
+  }
   if (btn === "bookmark") {
     if (bookmark["Host"] == undefined || bookmark["Packet"] == undefined) {
       statusUpdate("Status: Invalid bookmark data, reverting to first packet");
@@ -340,6 +352,7 @@ function handlePacketNavigation(btn, bookmark) {
     } else {
       ip = document.getElementById("host_filter").value;
       packetDecoded = JSON.parse(JSON.stringify(packetsForHost[index]));
+      console.log(packetDecoded);
       hexPayload =
         packetDecoded["Packet Info"]["Raw data"]["Payload"]["Hex Encoded"];
       infoPanel();
@@ -837,7 +850,8 @@ document
   .addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
       filterBy = document.getElementById("filterStr").value;
-      filterPackets(jsonOfPackets, filterBy);
+      filteredPackets = filterPackets(jsonOfPackets, filterBy);
+      handlePacketNavigation("filtered", null);
     }
   });
 
