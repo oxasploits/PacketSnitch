@@ -627,6 +627,25 @@ strong {
   height: 30px;
 }
 
+#filters-container {
+  display: block;
+  margin-top: 10px;
+  margin-left: 15px;
+  width: 1300px;
+}
+
+#host_filter {
+  width: 60px;
+  display: none;
+}
+
+#filterStr {
+  position: absolute;
+  margin-left: 10px;
+  margin-top: -8px;
+  width: 1200px;
+}
+
 #payloadascii {
   width: 320px;
   color: white;

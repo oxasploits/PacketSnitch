@@ -1,3 +1,4 @@
+const { filterPackets } = require("./filter");
 // Global variables for DOM elements and state
 const contentTarget = document.getElementById("json-upload"); // File input for JSON upload
 let packets = {}; // Stores parsed packet data from JSON
@@ -13,6 +14,7 @@ let bookmarkList = []; // List of bookmarks (host:packet index)
 let bookmark = {}; // Current bookmark obje22
 let firstRun = true; // Flag for first run to initialize hex grid
 let loaded = false;
+let jsonOfPackets;
 popHexGrid("00".repeat(256));
 // Set up file upload handler for JSON capture
 document
@@ -73,6 +75,7 @@ function processFile(file) {
       return;
     }
     fileLoaded(true);
+    jsonOfPackets = event.target.result;
     document.getElementById("error-container").style.display = "none";
     packets = JSON.parse(event.target.result);
     json_cap = JSON.stringify(packets, null, 2);
@@ -829,6 +832,15 @@ function doError(message) {
   });
 }
 
+document
+  .getElementById("filterStr")
+  .addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      filterBy = document.getElementById("filterStr").value;
+      filterPackets(jsonOfPackets, filterBy);
+    }
+  });
+
 window.onerror = (message, source, lineno, colno, error) => {
   doError(message + " at " + source + ":" + lineno + ":" + colno);
 };
@@ -845,6 +857,7 @@ window.api.onError((msg) => {
 
 // On page load, hide packet info and payload panes
 onload = function () {
+  document.getElementById("selectBookmark").style.display = "none";
   document.getElementById("packetInfoPane").style.display = "none";
   document.getElementById("packetPayloadPane").style.display = "none";
   document.getElementById("rightside").style.display = "none";
