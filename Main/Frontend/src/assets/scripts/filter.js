@@ -118,13 +118,13 @@ function filterPackets(packets, filter) {
                 hosts["Host"][host][packet],
                 uKeys[keys.indexOf(key)],
               );
-              if (compStrInt(packetVal, Number(val))) {
-                filteredPackets.push(hosts["Host"][host][packet]);
-              }
-              if (compStrFloat(packetVal, Number(val))) {
-                filteredPackets.push(hosts["Host"][host][packet]);
-              } else {
-                if (packetVal) {
+              if (packetVal) {
+                if (compStrInt(packetVal, Number(val))) {
+                  filteredPackets.push(hosts["Host"][host][packet]);
+                } else if (compStrFloat(packetVal, Number(val))) {
+                  filteredPackets.push(hosts["Host"][host][packet]);
+                  break;
+                } else {
                   if (
                     getDataType(packetVal) === "ASCII" ||
                     getDataType(packetVal) === "HEX" ||

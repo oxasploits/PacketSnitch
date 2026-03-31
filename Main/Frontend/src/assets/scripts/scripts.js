@@ -216,7 +216,7 @@ function initializeDataView() {
 // Navigation for previous packet
 document.getElementById("prev-btn").addEventListener("click", function () {
   statusUpdate("Status: Displaying capture analysis summary");
-  highlightTab("prev-btn");
+  //highlightTab("prev-btn");
   if (index > 0) {
     index--;
     infoPanel(packetsForHost);
@@ -235,14 +235,15 @@ document.getElementById("next-btn").addEventListener("click", function () {
   statusUpdate("Status: Displaying capture analysis summary");
   if (index < packetsForHost.length - 1) {
     index++;
-    infoPanel(packetsForHost);
-    popHexGrid(
-      packetsForHost[index]["Packet Info"]["Raw data"]["Payload"][
-        "Hex Encoded"
-      ],
-    );
-    populateDataTypes(packetsForHost);
   }
+  infoPanel(packetsForHost);
+  popHexGrid(
+    packetsForHost[index]["Packet Info"]["Raw data"]["Payload"]["Hex Encoded"],
+  );
+  populateDataTypes(packetsForHost);
+
+  //    handlePacketNavigation("filter", null);
+  //  }
 });
 
 // Handle bookmark selection from dropdown
@@ -294,6 +295,7 @@ function handlePacketNavigation(btn, bookmark) {
   document.getElementById("summary_box").style.display = "none";
   document.getElementById("welcome").style.display = "none";
 
+  index = 0;
   if (btn === undefined) {
     handlePacketNavigation("first-load");
   }
@@ -309,7 +311,6 @@ function handlePacketNavigation(btn, bookmark) {
     ps = filteredPackets;
   }
 
-  index = 0;
   if (btn === "bookmark") {
     if (bookmark["Host"] == undefined || bookmark["Packet"] == undefined) {
       statusUpdate("Status: Invalid bookmark data, reverting to first packet");
@@ -343,10 +344,7 @@ function handlePacketNavigation(btn, bookmark) {
     return;
   } else {
     ip = document.getElementById("host_filter").value;
-    packetDecoded = JSON.parse(JSON.stringify(ps[index]));
-    console.log(packetDecoded);
-    hexPayload =
-      packetDecoded["Packet Info"]["Raw data"]["Payload"]["Hex Encoded"];
+    hexPayload = ps[index]["Packet Info"]["Raw data"]["Payload"]["Hex Encoded"];
     infoPanel(ps);
     popHexGrid(hexPayload);
     populateDataTypes(ps);
