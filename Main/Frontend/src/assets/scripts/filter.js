@@ -83,6 +83,16 @@ function getDataType(data) {
   }
 }
 
+function compStrInt(str, intval) {
+  const num = Number(str);
+  return !Number.isNaN(num) && num === intval;
+}
+
+function compStrFloat(str, floatval) {
+  const num = Number(str);
+  return !Number.isNaN(num) && num === floatval;
+}
+
 function filterPackets(packets, filter) {
   let hosts = JSON.parse(packets);
   let filteredPackets = [];
@@ -100,35 +110,22 @@ function filterPackets(packets, filter) {
     if (filter.includes(":")) {
       for (host in hosts["Host"]) {
         const [key, val] = filter.split(":").map((s) => s.trim());
-        if (key != "" && val != "") {
+        if (key != "" && val != undefined) {
           if (keys.includes(key)) {
             for (const packet in hosts["Host"][host]) {
+              console.log(`Filtering packets by ${key}:${val}`);
               const packetVal = searchFullKey(
-                hosts["Host"][host],
+                hosts["Host"][host][packet],
                 uKeys[keys.indexOf(key)],
               );
-              if (getDataType(packetVal) === "INT") {
-                // change str to int
-                fvalue = parseInt(val);
-                cvalue = parseInt(packetVal);
+              if (compStrInt(packetVal, Number(val))) {
+                filteredPackets.push(hosts["Host"][host][packet]);
               }
-              if (getDataType(packetVal) === "FLOAT") {
-                cvalue = parseFloat(packetVal);
-                fvalue = parseFloat(val);
-              }
-              if (
-                getDataType(packetVal) === "IP" ||
-                getDataType(packetVal) === "MAC" ||
-                getDataType(packetVal) === "HEX" ||
-                getDataType(packetVal) === "ASCII"
-              ) {
-                cvalue = packetVal.toString().toLowerCase();
-                fvalue = val.toString().toLowerCase();
-              } else cvalue = packetVal;
-              if (cvalue && fvalue) {
-                if (cvalue === fvalue) {
-                  console.log(`Filtering packets by ${key}:${cvalue}`);
-                  filteredPackets.push(hosts["Host"][host]);
+              if (compStrFloat(packetVal, Number(val))) {
+                filteredPackets.push(hosts["Host"][host][packet]);
+              } else {
+                if (packetVal.toString().toLowerCase() === val.toLowerCase()) {
+                  filteredPackets.push(hosts["Host"][host][packet]);
                 }
               }
             }
@@ -139,6 +136,7 @@ function filterPackets(packets, filter) {
       }
     }
   }
+  console.log("Filtered packets:", filteredPackets);
   console.log(`Filtered packets: ${filteredPackets.length}`);
   return filteredPackets;
 }
