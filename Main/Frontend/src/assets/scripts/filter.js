@@ -124,8 +124,17 @@ function filterPackets(packets, filter) {
               if (compStrFloat(packetVal, Number(val))) {
                 filteredPackets.push(hosts["Host"][host][packet]);
               } else {
-                if (packetVal.toString().toLowerCase() === val.toLowerCase()) {
-                  filteredPackets.push(hosts["Host"][host][packet]);
+                if (packetVal) {
+                  if (
+                    getDataType(packetVal) === "ASCII" ||
+                    getDataType(packetVal) === "HEX" ||
+                    getDataType(packetVal) === "IP" ||
+                    getDataType(packetVal) === "MAC"
+                  ) {
+                    if (packetVal.toLowerCase() === val.toLowerCase()) {
+                      filteredPackets.push(hosts["Host"][host][packet]);
+                    }
+                  }
                 }
               }
             }

@@ -216,17 +216,33 @@ function initializeDataView() {
 // Navigation for previous packet
 document.getElementById("prev-btn").addEventListener("click", function () {
   statusUpdate("Status: Displaying capture analysis summary");
-  //highlightTab("prev-btn");
+  highlightTab("prev-btn");
+  if (index > 0) {
+    index--;
+    infoPanel(packetsForHost);
+    popHexGrid(
+      packetsForHost[index]["Packet Info"]["Raw data"]["Payload"][
+        "Hex Encoded"
+      ],
+    );
+    populateDataTypes(packetsForHost);
+  }
   // hostPacketInfo(host_filter.value);
-  handlePacketNavigation("prev-btn");
 });
 
 // Navigation for next packet
 document.getElementById("next-btn").addEventListener("click", function () {
   statusUpdate("Status: Displaying capture analysis summary");
-  // highlightTab("next-btn");
-  //hostPacketInfo(host_filter.value);
-  handlePacketNavigation("next-btn");
+  if (index < packetsForHost.length - 1) {
+    index++;
+    infoPanel(packetsForHost);
+    popHexGrid(
+      packetsForHost[index]["Packet Info"]["Raw data"]["Payload"][
+        "Hex Encoded"
+      ],
+    );
+    populateDataTypes(packetsForHost);
+  }
 });
 
 // Handle bookmark selection from dropdown
@@ -281,18 +297,19 @@ function handlePacketNavigation(btn, bookmark) {
   if (btn === undefined) {
     handlePacketNavigation("first-load");
   }
-  packetsForHost = packets["Host"][host_filter.value];
+  ps = packets["Host"][host_filter.value];
   if (btn === "filtered") {
-    packetsForHost = [];
-    for (fpacket in filteredPackets) {
-      pak = 0;
-      for (pak in filteredPackets[fpacket]) {
-        packetsForHost.push(filteredPackets[fpacket][pak]);
-        host_filter.value = packetsForHost[0]["Packet Info"]["IP"]["Source IP"];
-      }
-    }
-    index = 0;
+    ps = [];
+    //    for (fpacket in filteredPackets) {
+    //      pak = 0;
+    //      for (pak in filteredPackets[fpacket]) {
+    //       packetsForHost.push(filteredPackets[fpacket]);
+    //      //     host_filter.value = packetsForHost["Packet Info"]["IP"]["Source IP"];
+    //
+    ps = filteredPackets;
   }
+
+  index = 0;
   if (btn === "bookmark") {
     if (bookmark["Host"] == undefined || bookmark["Packet"] == undefined) {
       statusUpdate("Status: Invalid bookmark data, reverting to first packet");
@@ -306,64 +323,37 @@ function handlePacketNavigation(btn, bookmark) {
       document.getElementById("host_filter").value = bookmark["Host"];
     }
   }
-  if (!packetsForHost || packetsForHost.length === 0) {
-    statusUpdate("Status: No packets found for this host");
+  if (!ps || ps.length === 0) {
+    statusUpdate("Status: No packets");
+    return;
+  }
+  if (ps != undefined && (ps.length == 0 || ps[0] == undefined)) {
+    statusUpdate("Status: No packet information found for this host");
+    document.getElementById("main").innerHTML = "Please select a json file!";
+  }
+  // in the data main secton, this is where we would
+  // add the packet info for each packet, for now we just
+  // dump the json, we'll format later
+  // packetsForHost[index] is an array of all packet info
+  // for the current host, we want to be able to navigate
+  // through it with next and prev buttons
+  if (ps == undefined || ps[index] == undefined) {
+    statusUpdate("Status: No packet information found for this host");
+    doError("No packet information found for this host!");
     return;
   } else {
-    if (btn === "first-load") {
-      index = 0;
-      "Status: Displaying packet 1 of " + packetsForHost.length;
-    } else if (index >= 0 && btn === "prev-btn") {
-      index--;
-      statusUpdate(
-        "Status: Displaying packet " + index + " of " + packetsForHost.length,
-      );
-    } else if (
-      packetsForHost != undefined &&
-      index <= packetsForHost.length &&
-      btn === "next-btn"
-    ) {
-      index++;
-      statusUpdate(
-        "Status: Displaying packet " + index + " of " + packetsForHost.length,
-      );
-    }
-
-    if (packetsForHost != undefined && packetsForHost[index] == undefined) {
-      statusUpdate("Status: Index out of range, reverting to zero");
-      index = 0;
-    }
-    if (
-      packetsForHost != undefined &&
-      (packetsForHost.length == 0 || packetsForHost[0] == undefined)
-    ) {
-      statusUpdate("Status: No packet information found for this host");
-      document.getElementById("main").innerHTML = "Please select a json file!";
-    }
-    // in the data main secton, this is where we would
-    // add the packet info for each packet, for now we just
-    // dump the json, we'll format later
-    // packetsForHost[index] is an array of all packet info
-    // for the current host, we want to be able to navigate
-    // through it with next and prev buttons
-    if (packetsForHost == undefined || packetsForHost[index] == undefined) {
-      statusUpdate("Status: No packet information found for this host");
-      doError("No packet information found for this host!");
-      return;
-    } else {
-      ip = document.getElementById("host_filter").value;
-      packetDecoded = JSON.parse(JSON.stringify(packetsForHost[index]));
-      console.log(packetDecoded);
-      hexPayload =
-        packetDecoded["Packet Info"]["Raw data"]["Payload"]["Hex Encoded"];
-      infoPanel();
-      popHexGrid(hexPayload);
-      populateDataTypes();
-    }
+    ip = document.getElementById("host_filter").value;
+    packetDecoded = JSON.parse(JSON.stringify(ps[index]));
+    console.log(packetDecoded);
+    hexPayload =
+      packetDecoded["Packet Info"]["Raw data"]["Payload"]["Hex Encoded"];
+    infoPanel(ps);
+    popHexGrid(hexPayload);
+    populateDataTypes(ps);
   }
 }
 
-function populateDataTypes() {
+function populateDataTypes(p) {
   list = document.getElementById("types-list");
   list.textContent = "";
   mtype = document.getElementById("mime-type");
@@ -374,7 +364,8 @@ function populateDataTypes() {
   language.textContent = "";
   encoding = "";
   lang = "";
-  packetsForHost = packets["Host"][host_filter.value];
+  // packetsForHost = packets["Host"][host_filter.value];
+  packetsForHost = p;
   charset = JSON.parse(
     JSON.stringify(
       packetsForHost[index]["Extra Info"]["Traits"]["Characters"]["Charset"],
@@ -574,13 +565,13 @@ function createTable(data, headers, containerId) {
 // populates the info panel with it, including the side tables
 // and the main info table, also updates the timestamp and
 // ip:port info at the top
-function infoPanel() {
+function infoPanel(pk) {
   infoPane = document.getElementById("packetInfoPane");
   document.getElementById("rightside").style.display = "block";
   document.getElementById("leftside").style.display = "block";
   infoPaneOrig = infoPane.innerHTML;
   infoPane.style.display = "block";
-  p = JSON.parse(JSON.stringify(packetsForHost[index]));
+  p = pk[index];
   pinfo = p["Packet Info"];
   einfo = p["Extra Info"];
   ts = pinfo["Packet Timestamp"];
