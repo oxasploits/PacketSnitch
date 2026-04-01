@@ -58,8 +58,8 @@ checkOllama().then((isInstalled) => {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    minWidth: 1310,
-    minHeight: 700,
+    minWidth: 1360,
+    minHeight: 720,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },

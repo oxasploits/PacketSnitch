@@ -33,6 +33,21 @@ function searchFullKey(obj, targetKey) {
     }
   }
 }
+const operators = {
+  "==": (a, b) => a == b,
+  "!=": (a, b) => a != b,
+  "===": (a, b) => a === b,
+  "!==": (a, b) => a !== b,
+  ">": (a, b) => a > b,
+  "<": (a, b) => a < b,
+};
+
+function compare(a, b, operator) {
+  if (!operators[operator]) {
+    return operators["=="](a, b);
+  }
+  return operators[operator](a, b);
+}
 
 function getDataType(data) {
   function isIPv4(ip) {
@@ -88,17 +103,13 @@ function compStrInt(str, intval) {
   return !Number.isNaN(num) && num === intval;
 }
 
-function compStrFloat(str, floatval) {
-  const num = Number(str);
-  return !Number.isNaN(num) && num === floatval;
-}
-
 function filterPackets(packets, filter) {
   let hosts = JSON.parse(packets);
   let filteredPackets = [];
   for (const host in hosts["Host"]) {
     hostJson = hosts["Host"][host];
   }
+  const modifiers = [">", "<", "==", "!=", ">=", "<="];
   const filterKeys = getLeafKeys(hostJson);
   const keys = filterKeys.map((k) => Object.values(k)[0]);
   const uKeys = filterKeys.map((k) => Object.keys(k)[0]);
@@ -106,34 +117,38 @@ function filterPackets(packets, filter) {
   // leafs = getLeafKeys(hostkeys);
   //  console.log("Leaf keys in packets:", leafs[-1]);
   // need to lopp over each host in json data then get all leaf keys
+
+  let vMod, vVal;
   if (filter) {
     if (filter.includes(":")) {
-      for (host in hosts["Host"]) {
+      for (const host in hosts["Host"]) {
         const [key, val] = filter.split(":").map((s) => s.trim());
         if (key != "" && val != undefined) {
           if (keys.includes(key)) {
-            for (const packet in hosts["Host"][host]) {
-              console.log(`Filtering packets by ${key}:${val}`);
-              const packetVal = searchFullKey(
-                hosts["Host"][host][packet],
-                uKeys[keys.indexOf(key)],
-              );
-              if (packetVal) {
-                if (compStrInt(packetVal, Number(val))) {
-                  filteredPackets.push(hosts["Host"][host][packet]);
-                } else if (compStrFloat(packetVal, Number(val))) {
-                  filteredPackets.push(hosts["Host"][host][packet]);
-                  break;
-                } else {
-                  if (
-                    getDataType(packetVal) === "ASCII" ||
-                    getDataType(packetVal) === "HEX" ||
-                    getDataType(packetVal) === "IP" ||
-                    getDataType(packetVal) === "MAC"
-                  ) {
-                    if (packetVal.toLowerCase() === val.toLowerCase()) {
-                      filteredPackets.push(hosts["Host"][host][packet]);
-                    }
+            if (modifiers.some((mod) => val.includes(mod))) {
+              vMod = modifiers.find((mod) => val.includes(mod));
+            }
+          }
+          vVal = val.replace(vMod, "").trim();
+          for (const packet in hosts["Host"][host]) {
+            console.log(`Filtering packets by ${key}:${val}`);
+            const packetVal = searchFullKey(
+              hosts["Host"][host][packet],
+              uKeys[keys.indexOf(key)],
+            );
+            if (packetVal) {
+              if (compare(packetVal, vVal, vMod)) {
+                filteredPackets.push(hosts["Host"][host][packet]);
+              } else {
+                if (
+                  getDataType(packetVal) === "ASCII" ||
+                  getDataType(packetVal) === "HEX" ||
+                  getDataType(packetVal) === "IP" ||
+                  getDataType(packetVal) === "MAC"
+                ) {
+                  if (packetVal.toLowerCase() === vVal.toLowerCase()) {
+                    filteredPackets.push(hosts["Host"][host][packet]);
+                    break;
                   }
                 }
               }
