@@ -98,6 +98,9 @@ function getDataType(data) {
   }
 }
 
+// Returns a stable identifier for a packet used for ID-based set operations.
+// Priority: explicit "Index" field > "Packet Processed" (global PCAP sequence
+// number) > "Packet Timestamp" > null (caller falls back to JSON.stringify).
 function getPacketId(packet) {
   const info = packet?.["Packet Info"];
   if (!info) return null;
