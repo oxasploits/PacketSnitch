@@ -98,6 +98,7 @@ app.whenReady().then(() => {
           fileSent = true; // Prevent sending multiple times
         }
       }, 3000);
+
       return filePaths[0];
     });
   });

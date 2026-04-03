@@ -3,7 +3,8 @@ const { exec } = require("child_process");
 const os = require("os");
 const platform = os.platform();
 const path = require("path");
-
+const fs = require("fs");
+let pcapSizeMB;
 tempDir = os.tmpdir();
 testcasesDir = path.join(tempDir, "testcases");
 ipcMain.handle("run-backend-command", async (event, filename) => {
@@ -22,6 +23,17 @@ ipcMain.handle("run-backend-command", async (event, filename) => {
   } else {
     sendError("Unsupported platform!");
   }
+
+  ipcMain.handle("good-msg", async () => {
+    try {
+      // Get file stats asynchronously
+      const stats = await fs.promises.stat(filename); // Using promises version of stat
+      return stats.size; // Send back the file size
+    } catch (err) {
+      console.error("Error getting file stats:", err);
+      return 0; // Return 0 if there's an error
+    }
+  });
 
   command = `"${appPath}" "${filename}" -a -o "${testcasesDir}"`;
 

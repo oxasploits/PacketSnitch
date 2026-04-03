@@ -123,8 +123,13 @@ function runQuery(data, query) {
 }
 
 function filterPackets(data, query) {
-  const results = runQuery(data, query);
-
+  let results;
+  if (query.trim() === "") {
+    // dummy funtion so we can return all packets in the right format
+    results = runQuery(data, "wire-length:>=0"); // dummy filter that matches all packets
+  } else {
+    results = runQuery(data, query);
+  }
   return results.map((p) => {
     const hostKey = Object.keys(p.Host)[0];
     return p.Host[hostKey][0];

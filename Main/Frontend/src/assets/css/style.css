@@ -512,6 +512,13 @@ strong {
   color: red;
 }
 
+#file-info {
+  margin-top: 25px;
+  margin-left: 15px;
+  color: white;
+  font-size: 16px;
+}
+
 #packetPayloadPane {
   width: 99.5%;
   overflow: scroll;

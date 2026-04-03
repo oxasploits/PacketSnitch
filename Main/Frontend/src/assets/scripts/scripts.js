@@ -265,6 +265,19 @@ document.getElementById("setBookmark").addEventListener("click", function () {
   }
 });
 
+// funtion tht returns the total number of packets in the entire capture
+function totalPacketCount() {
+  totalPackets = 0;
+  if (packets["Host"] != undefined) {
+    for (const host in packets["Host"]) {
+      totalPackets += packets["Host"][host].length;
+    }
+  } else {
+    return 0;
+  }
+  return totalPackets;
+}
+
 /**
  * Handles navigation between packets (next, prev, bookmark, first-load).
  * Updates UI and packet info accordingly.
@@ -277,6 +290,12 @@ function handlePacketNavigation(btn, bookmark) {
   document.getElementById("summary_box").style.display = "none";
   document.getElementById("welcome").style.display = "none";
   showAllData();
+
+  document.getElementById("total-packets").innerHTML =
+    "Total packets (this host): " +
+    packetsForHost.length +
+    "<br>Total Packets (all hosts): " +
+    totalPacketCount();
   index = 0;
   if (btn === undefined) {
     handlePacketNavigation("first-load");
@@ -290,6 +309,8 @@ function handlePacketNavigation(btn, bookmark) {
     //       packetsForHost.push(filteredPackets[fpacket]);
     //      //     host_filter.value = packetsForHost["Packet Info"]["IP"]["Source IP"];
     //
+    document.getElementById("filter-returned").textContent =
+      "Filtered Packets: " + filteredPackets.length;
     ps = filteredPackets;
   }
 
@@ -849,6 +870,7 @@ document
     if (event.key === "Enter") {
       filterBy = document.getElementById("filterStr").value;
       filteredPackets = filterPackets(jsonOfPackets, filterBy);
+
       if (filteredPackets == undefined || filteredPackets.length == 0) {
         hideAllData();
         statusUpdate("Status: No packets match the filter criteria");
@@ -870,6 +892,18 @@ window.onerror = (message, source, lineno, colno, error) => {
 window.onunhandledrejection = (event) => {
   doError("Unhandled promise error! " + event.reason);
 };
+
+window.goodmsg
+  .getGoodMsg()
+  .then((goodmsg) => {
+    // Update the UI with the file size
+    document.getElementById("pcap-size").textContent =
+      `File Size: ${fileSize} bytes`;
+  })
+  .catch((error) => {
+    // Handle any errors (e.g., file not found)
+    console.error("Error fetching file size:", error);
+  });
 
 window.api.onError((msg) => {
   console.error("Error from backend:", msg);
