@@ -94,8 +94,17 @@ function getDataType(data) {
   if (isASCII(data)) {
     return "ASCII";
   } else {
-    ("BIN");
+    return "BIN";
   }
+}
+
+function getPacketId(packet) {
+  const info = packet?.["Packet Info"];
+  if (!info) return null;
+  if (info["Index"] !== undefined) return info["Index"];
+  if (info["Packet Processed"] !== undefined) return info["Packet Processed"];
+  if (info["Packet Timestamp"] !== undefined) return info["Packet Timestamp"];
+  return null;
 }
 
 function runQuery(data, query) {
@@ -106,20 +115,24 @@ function runQuery(data, query) {
     let result = filterChunk(data, andParts[0]);
     for (let i = 1; i < andParts.length; i++) {
       const nextResult = filterChunk(data, andParts[i]);
-      const set = new Set(nextResult);
-      result = intersect(result, nextResult);
+      const nextIds = new Set(nextResult.map(getPacketId));
+      result = result.filter((p) => nextIds.has(getPacketId(p)));
     }
     return result;
   });
 
-  // Combine all OR results (union, no duplicates)
-  return [...new Set(orResults.flat())];
-}
-
-function intersect(arr1, arr2) {
-  return arr1.filter((a) =>
-    arr2.some((b) => JSON.stringify(a) === JSON.stringify(b)),
-  );
+  // Combine all OR results (union, no duplicates by packet id)
+  const seen = new Set();
+  const combined = [];
+  for (const p of orResults.flat()) {
+    const id = getPacketId(p);
+    const key = id !== null ? id : JSON.stringify(p);
+    if (!seen.has(key)) {
+      seen.add(key);
+      combined.push(p);
+    }
+  }
+  return combined;
 }
 
 function filterPackets(data, query) {
@@ -182,4 +195,4 @@ function filterChunk(packets, filter) {
   console.log(`Filtered packets: ${filteredPackets.length}`);
   return filteredPackets;
 }
-module.exports = { filterPackets };
+module.exports = { filterPackets, getDataType };
