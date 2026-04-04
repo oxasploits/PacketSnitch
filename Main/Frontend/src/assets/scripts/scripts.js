@@ -8,7 +8,6 @@ let final_summary = ""; // Stores the summary section from JSON
 const status = document.getElementById("status"); // Status bar element
 let hosts = ["0.0.0.0"]; // List of hosts found in capture
 let host_filter = document.getElementById("host_filter"); // Host filter dropdown
-let currentPacketIndex = 0; // Index of currently displayed packet
 let packetsForHost = []; // Packets for the currently selected host
 let index = 0; // Navigation index for packets
 let bookmarkList = []; // List of bookmarks (host:packet index)
@@ -36,6 +35,19 @@ document
   .addEventListener("click", function (event) {
     window.getfileapi.selectFile().then((filePath) => {
       if (filePath) {
+        window.fsize
+          .getFSize()
+          .then((fileSize) => {
+            // Update the UI with the file size
+            fSizeInKB = (fileSize / 1024).toFixed(2);
+            document.getElementById("pcap-size").textContent =
+              `PCAP size: ${fSizeInKB}kb`;
+          })
+          .catch((error) => {
+            // Handle any errors (e.g., file not found)
+            console.error("Error fetching file size:", error);
+          });
+
         runSnitch(filePath);
       }
     });
@@ -292,10 +304,7 @@ function handlePacketNavigation(btn, bookmark) {
   showAllData();
 
   document.getElementById("total-packets").innerHTML =
-    "Total packets (this host): " +
-    packetsForHost.length +
-    "<br>Total Packets (all hosts): " +
-    totalPacketCount();
+    "Total Packets: " + totalPacketCount();
   index = 0;
   if (btn === undefined) {
     handlePacketNavigation("first-load");
@@ -869,7 +878,7 @@ document
   .addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
       filterBy = document.getElementById("filterStr").value;
-      filteredPackets = filterPackets(jsonOfPackets, filterBy);
+      filteredPackets = filterPackets(packets, filterBy);
 
       if (filteredPackets == undefined || filteredPackets.length == 0) {
         hideAllData();
@@ -892,18 +901,6 @@ window.onerror = (message, source, lineno, colno, error) => {
 window.onunhandledrejection = (event) => {
   doError("Unhandled promise error! " + event.reason);
 };
-
-window.goodmsg
-  .getGoodMsg()
-  .then((goodmsg) => {
-    // Update the UI with the file size
-    document.getElementById("pcap-size").textContent =
-      `File Size: ${fileSize} bytes`;
-  })
-  .catch((error) => {
-    // Handle any errors (e.g., file not found)
-    console.error("Error fetching file size:", error);
-  });
 
 window.api.onError((msg) => {
   console.error("Error from backend:", msg);

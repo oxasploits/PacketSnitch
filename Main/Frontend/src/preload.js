@@ -25,6 +25,6 @@ contextBridge.exposeInMainWorld("api", {
   },
 });
 
-contextBridge.exposeInMainWorld("goodmsg", {
-  getGoodMsg: () => ipcRenderer.invoke("good-msg"), // Expose this method to renderer
+contextBridge.exposeInMainWorld("fsize", {
+  getFSize: () => ipcRenderer.invoke("file-size"), // Expose this method to renderer
 });

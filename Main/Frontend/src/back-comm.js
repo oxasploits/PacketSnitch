@@ -24,17 +24,6 @@ ipcMain.handle("run-backend-command", async (event, filename) => {
     sendError("Unsupported platform!");
   }
 
-  ipcMain.handle("good-msg", async () => {
-    try {
-      // Get file stats asynchronously
-      const stats = await fs.promises.stat(filename); // Using promises version of stat
-      return stats.size; // Send back the file size
-    } catch (err) {
-      console.error("Error getting file stats:", err);
-      return 0; // Return 0 if there's an error
-    }
-  });
-
   command = `"${appPath}" "${filename}" -a -o "${testcasesDir}"`;
 
   console.log("Command to run:", command);

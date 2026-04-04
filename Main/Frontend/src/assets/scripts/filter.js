@@ -96,6 +96,10 @@ function filterChunk(data, filter) {
       if (mod && compare(packetVal, val, mod)) {
         results.push({ Host: { [host]: [packet] } });
         continue;
+      } else {
+        if (compare(packetVal, val, "==")) {
+          results.push({ Host: { [host]: [packet] } });
+        }
       }
       const type = getDataType(packetVal);
       if (["ASCII", "HEX", "IP", "MAC"].includes(type)) {
@@ -130,6 +134,7 @@ function filterPackets(data, query) {
   } else {
     results = runQuery(data, query);
   }
+
   return results.map((p) => {
     const hostKey = Object.keys(p.Host)[0];
     return p.Host[hostKey][0];

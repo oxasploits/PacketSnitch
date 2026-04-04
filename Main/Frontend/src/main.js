@@ -6,10 +6,23 @@ const os = require("os");
 const platform = os.platform();
 const testcaseDir = path.join(os.tmpdir(), "testcases");
 let mainWindow;
+let filename;
 let backendLoaded = false;
 if (require("electron-squirrel-startup")) {
   app.quit();
 }
+ipcMain.handle("file-size", async () => {
+  try {
+    //    const filePath = path.join(__dirname, 'path/to/your/file.txt'); // Your actual file path here
+
+    // Get file stats asynchronously
+    const stats = await fs.promises.stat(filename); // Using promises version of stat
+    return stats.size; // Send back the file size
+  } catch (err) {
+    console.error("Error getting file stats:", err);
+    return 0; // Return 0 if there's an error
+  }
+});
 
 hostsFilePath = path.join(testcaseDir, "hosts.json");
 // make sure we have a fresh temp dir
@@ -98,7 +111,8 @@ app.whenReady().then(() => {
           fileSent = true; // Prevent sending multiple times
         }
       }, 3000);
-
+      console.log("File selected:", filePaths[0]);
+      filename = filePaths[0];
       return filePaths[0];
     });
   });
